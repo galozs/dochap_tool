@@ -1,0 +1,5 @@
+*.txt
+*.gz
+*.pyc
+data
+__cachce__
