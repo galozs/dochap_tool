@@ -12,6 +12,13 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) \
         if os.path.isdir(os.path.join(a_dir, name))]
 
+def check_if_specie_downloaded(download_dir,specie):
+    species = get_immediate_subdirectories(download_dir)
+    if specie in download_dir:
+        return True
+    return False
+
+
 
 def create_standard_progressbar(end):
     progress_bar = progressbar.AnimatedProgressBar(end=end,width = conf.PROGRESSBAR_WIDTH)
