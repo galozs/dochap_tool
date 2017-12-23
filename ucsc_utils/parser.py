@@ -1,11 +1,8 @@
 import os
 from dochap_tools.common_utils import utils
 
-def parse_known_gene_to_dict(specie):
-    if not utils.check_if_specie_downloaded('data',specie):
-        print(f'specie files not downloaded {specie}')
-        return
-    path = f'data/{specie}/knownGene.txt'
+def parse_known_gene_to_dict(root_dir,specie):
+    path = f'{root_dir}/{specie}/knownGene.txt'
     if not os.path.isfile(path):
         print(f'{specie} knownGene not downloaded')
         return
@@ -31,7 +28,26 @@ def parse_known_gene_to_dict(specie):
             data['protein_id'] = splitted_line[10]
             data['align_id'] = splitted_line[11]
             names[data['name']] = data
-      return names
+        return names
+
+def parse_kg_alias(root_dir,specie):
+    path = f'{root_dir}/{specie}/kgAlias.txt'
+    if not os.path.isfile(path):
+        print("{specie} have no kgAlias file!")
+        return None
+    with open(path,'r') as f:
+        lines = f.readlines()
+    alias_dict = {}
+    for line in lines:
+        values =line.split('\t')
+        if values[0] in alias_dict:
+            alias_dict[values[0]].append(values[1])
+        else:
+            alias_dict[values[0]] = [values[1]]
+    return alias_dict
+
+
+
 
 def parser():
     return

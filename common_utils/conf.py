@@ -17,6 +17,8 @@ UCSC_DICT = {
         'Mus_musculus':'mm10',
 }
 PROGRESSBAR_WIDTH = 10
+
+DROP_TABLE_TEMPLATE = "drop table if exists {}"
 def get_protein_path(specie):
     return PROT_PATH_TEMPLATE.format(specie)
 def get_readme_path(specie):
@@ -24,4 +26,7 @@ def get_readme_path(specie):
 def get_ucsc_file_path(specie,filename):
     version_prefix = UCSC_DICT[specie]
     return UCSC_TEMPLATE.format(version_prefix,filename)
+
+
+
 

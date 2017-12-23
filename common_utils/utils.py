@@ -31,6 +31,10 @@ def create_progressbar_callback_func(progress_bar,file_object):
         progress_bar.show_progress()
     return callback
 
+def drop_table(conn,table):
+    conn.execute(conf.DROP_TABLE_TEMPLATE.format(table))
+
+
 
 def create_ftp_connection(address,cert=None):
     ftp = ftplib.FTP(address)
