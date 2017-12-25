@@ -19,6 +19,9 @@ def check_if_specie_downloaded(download_dir,specie):
     return False
 
 
+def get_specie_db_path(root_dir,specie):
+    path = os.path.join(root_dir,specie,f'{specie}.db')
+    return path
 
 def create_standard_progressbar(end):
     progress_bar = progressbar.AnimatedProgressBar(end=end,width = conf.PROGRESSBAR_WIDTH)

@@ -34,9 +34,12 @@ def create_genbank_table(root_dir,specie,conn):
 def create_alias_table(root_dir,specie,conn):
     print("creating alias table")
     utils.drop_table(conn,'alias')
-    conn.execute("CREATE TABLE alias(trascript_id TEXT, aliases TEXT)")
+    conn.execute("CREATE TABLE alias(trascript_id TEXT, alias TEXT)")
     alias_dict = ucsc_parser.parse_kg_alias(root_dir,specie)
-    values = ((name,','.join(aliases)) for name,aliases in alias_dict.items())
+    values = []
+    for name,aliases in alias_dict.items():
+        for alias in aliases:
+            values.append((name,alias))
     cursor = conn.cursor()
     cursor.executemany("INSERT INTO alias VALUES(?,?)",values)
 
