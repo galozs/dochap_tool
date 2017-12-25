@@ -1,5 +1,6 @@
 *.txt
 *.gz
 *.pyc
+*.swp
 data
 __cachce__
