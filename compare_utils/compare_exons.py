@@ -39,9 +39,9 @@ def get_exons_from_transcript_dict(transcript_data):
 def set_relative_exons_position(exons,start_mod=0):
     last_end = 0
     for exon in exons:
-        exon['rel_start'] = last_end + start_mod + 1
-        exon['rel_end'] = exon['rel_start'] + exon['length']
-        last_end = exon['rel_end']
+        exon['relative_start'] = last_end + start_mod + 1
+        exon['relative_end'] = exon['relative_start'] + exon['length']
+        last_end = exon['relative_end']
     return exons
 
 
@@ -106,4 +106,53 @@ def get_gene_aliases_of_transcript_id(conn,transcript_id):
     for result in results:
         aliases.append(result['gene_alias'])
     return aliases
+
+# TODO
+def compare_intersections(intersection,candidates):
+    for candidate in candidates:
+        score = get_intersections_score(intersection,candidate)
+
+
+def get_intersections_score(i1,i2):
+    pass
+
+def get_domains_intersections_in_exons(domains_list,exons_list):
+    intersections = {}
+    for exon_index,exon in enumerate(exons_list):
+        intersections[str(exon_index)] = []
+        for domain_index,domain in enumerate(domains_list):
+            intersection = get_domain_location_in_exon(domain,exon)
+            if intersection:
+                # append the intersection
+                intersection['domain_index'] = domain_index
+                intersections[str(exon_index)].append(intersection)
+            else:
+                # no intersection, ignore.
+                continue
+
+    return intersections
+
+
+def get_domain_location_in_exon(domain,exon):
+    intersection = {'start':None,'end':None}
+    e_start = exon['relative_start']
+    e_end = exon['relative_end']
+    d_start = domain['start']
+    d_end = domain['end']
+    if e_start <= d_start <= e_end:
+        # domain starts in the exon
+        intersection['start'] = d_start
+
+    if e_start <= d_end <= e_end:
+        # domain ends in the exon
+        intersection['end'] = d_end
+
+    if intersection['start'] and intersection['end']:
+        return intersection
+    return None
+
+
+
+
+
 
