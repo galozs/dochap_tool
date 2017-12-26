@@ -2,6 +2,10 @@ import sys
 sys.path.append('..')
 from dochap_tools.common_utils import utils
 import sqlite3 as lite
+import re
+
+
+expression = re.compile(r'(?<=\[)([0-9:]*)(?=\])')
 
 def get_exons_from_transcript_id(root_dir,specie,transcript_id):
     # query the knownGene table
@@ -9,7 +13,7 @@ def get_exons_from_transcript_id(root_dir,specie,transcript_id):
         conn.row_factory = lite.Row
         known_gene_transcript = get_known_gene_transcript(conn,transcript_id)
         exons = get_exons_from_transcript_dict(known_gene_transcript)
-        print(exons)
+    return exons
 
 def get_known_gene_transcript(conn,transcript_id):
     cursor = conn.cursor()
@@ -42,9 +46,48 @@ def set_relative_exons_position(exons,start_mod=0):
 
 
 def get_domains_of_gene(root_dir,specie,gene_name):
+    """
+    reuturn list of lists of domains dictionaries, for every variant of the gene.
+    """
     path = utils.get_specie_db_path(root_dir,specie)
     with lite.connect(path) as conn:
-        pass
+        conn.row_factory = lite.Row
+        cursor = conn.cursor()
+        query = "SELECT sites,regions from genbank WHERE symbol = ?"
+        cursor.execute(query,(gene_name,))
+        results = cursor.fetchall()
+        domains_variants = []
+        for gene_result in results:
+            domains = combine_sites_and_regions(gene_result['sites'],gene_result['regions'])
+            domains_variants.append(domains)
+    return domains_variants
+
+
+def combine_sites_and_regions(sites_string,regions_string):
+    """
+    reuturn list of domains dictionaries
+    """
+    sites = extract_domains_data(sites_string,'site')
+    regions = extract_domains_data(regions_string,'region')
+    domains = sites+regions
+    return domains
+
+
+def extract_domains_data(domains_string,dom_type):
+    domain_strings_list = re.findall(expression,domains_string)
+    domains_description = domains_string.split(r'],')
+    domains = []
+    for index,domain_string in enumerate(domain_strings_list):
+        if ':' in domain_string:
+            split = domain_string.split(':')
+            if len(split) != 2:
+                # sanity check
+                continue
+            start = (int(split[0])+1) * 3 - 2
+            end = (int(split[1])+1) * 3
+            description = domains_description[index]+']'
+            domains.append({'type':dom_type,'start' : start,'end':end,'description':description})
+    return domains
 
 
 def get_transcript_id_of_gene(conn,gene_name):
@@ -57,11 +100,10 @@ def get_transcript_id_of_gene(conn,gene_name):
 def get_gene_aliases_of_transcript_id(conn,transcript_id):
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE transcript_id = ?'
-    cursor.execute(query,transcript_id)
+    cursor.execute(query,(transcript_id,))
     result = cursor.fetchall()
     aliases = []
     for result in results:
         aliases.append(result['gene_alias'])
     return aliases
-
 
