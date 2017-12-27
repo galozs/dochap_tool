@@ -39,7 +39,7 @@ def parse_kg_alias(root_dir,specie):
         lines = f.readlines()
     alias_dict = {}
     for line in lines:
-        values =line.split('\t')
+        values =line.replace('\n','').replace('\\n','').split('\t')
         if values[0] in alias_dict:
             alias_dict[values[0]].append(values[1])
         else:

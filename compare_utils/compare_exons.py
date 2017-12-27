@@ -91,13 +91,19 @@ def extract_domains_data(domains_string,dom_type):
 
 
 def get_transcript_id_of_gene(conn,gene_name):
+    """
+    Return transcript_id of given gene name
+    """
     cursor = conn.cursor()
-    query = 'SELECT * from alias WHERE gene_alias = ?'
-    cursor.execute(query,gene_name)
+    query = 'SELECT * from alias WHERE alias = ?'
+    cursor.execute(query,(gene_name,))
     result = cursor.fetchone()
     return result['transcript_id']
 
 def get_gene_aliases_of_transcript_id(conn,transcript_id):
+    """
+    return all known aliases of a given transcript id
+    """
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE transcript_id = ?'
     cursor.execute(query,(transcript_id,))
@@ -107,14 +113,32 @@ def get_gene_aliases_of_transcript_id(conn,transcript_id):
         aliases.append(result['gene_alias'])
     return aliases
 
-# TODO
 def compare_intersections(intersection,candidates):
+    """
+    sort a list of intersection candidates in comparison to given intersection
+    """
     for candidate in candidates:
         score = get_intersections_score(intersection,candidate)
-
+        candidate['score'] = score
+    candidates.sort(key=lambda i:i['score'])
+    return candidates
 
 def get_intersections_score(i1,i2):
-    pass
+    """
+    compare two intersection and return the score
+    """
+    if i1['domain_index'] == i2['domain_index']:
+        i1_length = abs(i1['start'] - i1['end'])
+        i2_length = abs(i2['start'] - i2['end'])
+        score = i1_length / i2_length
+        if score == 0:
+            return 0.0
+        if score > 1.0:
+            return 1.0/score
+        else:
+            return score
+    else:
+        return 0.0
 
 def get_domains_intersections_in_exons(domains_list,exons_list):
     intersections = {}
