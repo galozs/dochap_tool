@@ -1,8 +1,8 @@
+import sys
+sys.path.append('..')
 from dochap_tools.common_utils import utils
 import sqlite3 as lite
 import re
-import sys
-sys.path.append('..')
 
 
 expression = re.compile(r'(?<=\[)([0-9:]*)(?=\])')
@@ -13,11 +13,23 @@ def get_exons_from_transcript_id(root_dir, specie, transcript_id):
     Query the database and return list of dictionaries expressing exons data
     """
     # query the knownGene table
-    with lite.connect(utils.get_specie_db_path(root_dir, specie)) as conn:
+    conn = utils.get_connection_object(root_dir,specie)
+    with conn:
         conn.row_factory = lite.Row
         known_gene_transcript = get_known_gene_transcript(conn, transcript_id)
         exons = get_exons_from_transcript_dict(known_gene_transcript)
     return exons
+
+
+def get_exons_from_gene_symbol(root_dir, specie, gene_symbol):
+    conn = utils.get_connection_object(root_dir,specie)
+    with conn:
+        transcript_ids = get_transcript_ids_of_gene_symbol(conn,gene_symbol)
+        exons_by_transcript_ids = {}
+        for transcript_id in transcript_ids:
+            exons = get_exons_from_transcript_id(root_dir,specie,transcript_id)
+            exons_by_transcript_ids[transcript_id] = exons
+        return exons_by_transcript_ids
 
 
 def get_known_gene_transcript(conn, transcript_id):
@@ -37,7 +49,7 @@ def get_exons_from_transcript_dict(transcript_data):
         start = int(starts[index])
         end = int(ends[index])
         length = abs(start-end)
-        exons.append({'length':length, 'real_start':start, 'real_end':end})
+        exons.append({'index':index,'length':length, 'real_start':start, 'real_end':end})
     set_relative_exons_position(exons)
     return exons
 
@@ -51,21 +63,22 @@ def set_relative_exons_position(exons, start_mod=0):
     return exons
 
 
-def get_domains_of_gene(root_dir, specie, gene_name):
+def get_domains_of_gene_symbol(root_dir, specie, gene_symbol):
     """
     reuturn list of lists of domains dictionaries, for every variant of the gene.
     """
-    path = utils.get_specie_db_path(root_dir, specie)
-    with lite.connect(path) as conn:
+    conn = utils.get_connection_object(root_dir,specie)
+    with conn:
         conn.row_factory = lite.Row
         cursor = conn.cursor()
         query = "SELECT sites, regions from genbank WHERE symbol = ?"
-        cursor.execute(query, (gene_name, ))
+        cursor.execute(query, (gene_symbol, ))
         results = cursor.fetchall()
         domains_variants = []
         for gene_result in results:
             domains = combine_sites_and_regions(gene_result['sites'], gene_result['regions'])
-            domains_variants.append(domains)
+            if domains:
+                domains_variants.append(domains)
     return domains_variants
 
 
@@ -92,33 +105,52 @@ def extract_domains_data(domains_string, dom_type):
             start = (int(split[0])+1) * 3 - 2
             end = (int(split[1])+1) * 3
             description = domains_description[index]+']'
-            domains.append({'type':dom_type, 'start':start, 'end':end, 'description':description})
+            domains.append({'type':dom_type,'index':index 'start':start, 'end':end, 'description':description})
     return domains
 
 
-def get_transcript_id_of_gene(conn, gene_name):
+def get_transcript_ids_of_gene_symbol(conn, gene_symbol):
     """
-    Return transcript_id of given gene name
+    Return transcript_id list of given gene name
     """
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE alias = ?'
-    cursor.execute(query, (gene_name, ))
-    result = cursor.fetchone()
-    return result['transcript_id']
+    cursor.execute(query, (gene_symbol, ))
+    results = cursor.fetchall()
+    ids = [result['transcript_id'] for result in results]
+    return ids
 
 
 def get_gene_aliases_of_transcript_id(conn, transcript_id):
     """
-    return all known aliases of a given transcript id
+    return all known aliases of a given transcript id in a list
+    return None if no aliases has been found
     """
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE transcript_id = ?'
     cursor.execute(query, (transcript_id, ))
     results = cursor.fetchall()
-    aliases = []
-    for result in results:
-        aliases.append(result['gene_alias'])
-    return aliases
+    if results:
+        aliases = [result['gene_alias'] for result in results]
+        return aliases
+    return None
+
+
+def get_ncbi_gene_symbol_of_transcript_id(conn,transcript_id):
+    aliases = get_gene_aliases_of_transcript_id(conn, transcript_id)
+    if not aliases:
+        return None
+    for alias in aliases:
+        # check if the alias in the genbank table
+        # if yes, this is the ncbi symbol relating to the given transcript id
+        query = 'SELECT * from genbank WHERE symbol = ?'
+        cursor = conn.cursor()
+        cursor.execute(query, (alias, ))
+        result = cursor.fetchone()
+        if result:
+            return alias
+    return None
+
 
 
 def get_domains_intersections_in_exons(domains_list, exons_list):

@@ -7,6 +7,7 @@ import ftplib
 import os
 import shutil
 import gzip
+import sqlite3 as lite
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) \
@@ -93,3 +94,9 @@ def yes_no_question(question,default = True):
     if user_input == '':
         return default
     return yes_no_question(question,default)
+
+def get_connection_object(root_dir,specie):
+    path = get_specie_db_path(root_dir,specie)
+    conn = lite.connect(path)
+    conn.row_factory = lite.Row
+    return conn
