@@ -5,7 +5,6 @@ def parse_gtf(file_path):
     with open(file_path) as f:
         lines = f.readlines()    # dictionary of exons by transcript_id
     transcripts = {}
-    transcript_id_prev = ''
     relative_end = 0
     exons = []
     for line in lines:
@@ -20,7 +19,7 @@ def parse_gtf(file_path):
             exon['index'] = int(splitted[8].split('"')[5]) - 1
             exon['length'] = abs(exon['real_end'] - exon['real_start'])
             # increment relative start location
-            if exon['index'] == 0
+            if exon['index'] == 0:
                 relative_start = relative_end + 1
             # reset relative start location
             else:
@@ -30,12 +29,13 @@ def parse_gtf(file_path):
             exon['relative_start'] = relative_start
             exon['relative_end'] = relative_end
             exons.append(exon)
-            transcripts[exon['transcript_id']] = {'exons':exons}
+            transcripts[exon['transcript_id']] = {'exons': exons}
     return transcripts
+
 
 def parser():
     return
 
+
 if __name__ == '__main__':
     parser()
-
