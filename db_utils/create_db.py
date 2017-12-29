@@ -17,7 +17,7 @@ def create_genbank_table(root_dir,specie,conn):
     utils.drop_table(conn,'genbank')
     conn.execute(
             "CREATE TABLE genbank(\
-            Id INT, symbol TEXT, db_xref TEXT,\
+            Id INT, symbol TEXT collate nocase, db_xref TEXT,\
             coded_by TEXT, chromosome TEXT,strain TEXT,\
             cds TEXT, sites TEXT, regions TEXT)"
     )
@@ -34,7 +34,7 @@ def create_genbank_table(root_dir,specie,conn):
 def create_alias_table(root_dir,specie,conn):
     print("creating alias table")
     utils.drop_table(conn,'alias')
-    conn.execute("CREATE TABLE alias(transcript_id TEXT, alias TEXT)")
+    conn.execute("CREATE TABLE alias(transcript_id TEXT collate nocase, alias TEXT collate nocase)")
     alias_dict = ucsc_parser.parse_kg_alias(root_dir,specie)
     values = []
     for name,aliases in alias_dict.items():
@@ -47,7 +47,7 @@ def create_known_gene_table(root_dir,specie,conn):
     print("creating knownGene table")
     utils.drop_table(conn,'knownGene')
     known_gene_dict= ucsc_parser.parse_known_gene_to_dict(root_dir,specie)
-    conn.execute("CREATE TABLE knownGene(name TEXT,\
+    conn.execute("CREATE TABLE knownGene(name TEXT collate nocase,\
                      chrom TEXT,\
                      strand TEXT,\
                      tx_start TEXT,\
@@ -57,7 +57,7 @@ def create_known_gene_table(root_dir,specie,conn):
                      exon_count TEXT,\
                      exon_starts TEXT,\
                      exon_ends TEXT,\
-                     protein_id TEXT,\
+                     protein_id TEXT ,\
                      align_id TEXT)"
     )
     cursor = conn.cursor()

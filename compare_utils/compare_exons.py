@@ -41,6 +41,9 @@ def get_known_gene_transcript(conn, transcript_id):
 
 
 def get_exons_from_transcript_dict(transcript_data):
+    """
+    Extract exons from a given transcript dictionary
+    """
     exons = []
     # calculate length of each exon
     starts = transcript_data['exon_starts'].split(',')
@@ -55,6 +58,9 @@ def get_exons_from_transcript_dict(transcript_data):
 
 
 def set_relative_exons_position(exons, start_mod=0):
+    """
+    Squash exons together to be concussive
+    """
     last_end = 0
     for exon in exons:
         exon['relative_start'] = last_end + start_mod + 1
@@ -105,7 +111,7 @@ def extract_domains_data(domains_string, dom_type):
             start = (int(split[0])+1) * 3 - 2
             end = (int(split[1])+1) * 3
             description = domains_description[index]+']'
-            domains.append({'type':dom_type,'index':index 'start':start, 'end':end, 'description':description})
+            domains.append({'type':dom_type,'index':index, 'start':start, 'end':end, 'description':description})
     return domains
 
 
@@ -137,6 +143,10 @@ def get_gene_aliases_of_transcript_id(conn, transcript_id):
 
 
 def get_ncbi_gene_symbol_of_transcript_id(conn,transcript_id):
+    """
+    Get the ncbi gene symbol of the given transcript id in the given database.
+    Return None if there isnt one.
+    """
     aliases = get_gene_aliases_of_transcript_id(conn, transcript_id)
     if not aliases:
         return None
@@ -151,6 +161,13 @@ def get_ncbi_gene_symbol_of_transcript_id(conn,transcript_id):
             return alias
     return None
 
+def check_if_transcript_id_in_db(conn, transcript_id):
+    """Checks if a given transcript id exist in the given database"""
+    aliases = get_gene_aliases_of_transcript_id(conn, transcript_id)
+    if aliases:
+        return True
+    else:
+        return False
 
 
 def get_domains_intersections_in_exons(domains_list, exons_list):
@@ -163,11 +180,11 @@ def get_domains_intersections_in_exons(domains_list, exons_list):
     intersections = {}
     for exon_index, exon in enumerate(exons_list):
         intersections[str(exon_index)] = []
-        for domain_index, domain in enumerate(domains_list):
+        for domain in domains_list:
             intersection = get_domain_intersection_in_exon(domain, exon)
             if intersection:
                 # append the intersection
-                intersection['domain_index'] = domain_index
+                intersection['domain'] = domain
                 intersections[str(exon_index)].append(intersection)
             else:
                 # no intersection, ignore.
@@ -193,7 +210,7 @@ def get_domain_intersection_in_exon(domain, exon):
         # domain ends in the exon
         intersection['end'] = d_end
 
-    if intersection['start'] and intersection['end']:
+    if intersection['start'] or intersection['end']:
         return intersection
     return None
 
@@ -213,10 +230,15 @@ def get_intersections_score(i1, i2):
     """
     compare two intersection and return the score
     """
-    if i1['domain_index'] == i2['domain_index']:
-        i1_length = abs(i1['start'] - i1['end'])
-        i2_length = abs(i2['start'] - i2['end'])
-        score = i1_length / i2_length
+    if i1['domain'] == i2['domain']:
+        score = 0
+        i1_length,i2_length = None,None
+        if i1['start'] and i1['end']:
+            i1_length = abs(i1['start'] - i1['end'])
+        if i2['start'] and i2['end']:
+            i2_length = abs(i2['start'] - i2['end'])
+        if i1_length and i2_length:
+            score = i1_length / i2_length
         if score == 0:
             return 0.0
         if score > 1.0:
