@@ -1,2 +1,3 @@
 # numpy - included in biopython
 biopython
+svgwrite
