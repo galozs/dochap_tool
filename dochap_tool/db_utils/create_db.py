@@ -1,10 +1,15 @@
 import sys
-sys.path.append("..")
+import os
 import sqlite3 as lite
-from dochap_tools.ucsc_utils import parser as ucsc_parser
-from dochap_tools.ncbi_utils import parser as ncbi_parser
-from dochap_tools.common_utils import utils
-from dochap_tools.common_utils import conf
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+from dochap_tool.ucsc_utils import parser as ucsc_parser
+from dochap_tool.ncbi_utils import parser as ncbi_parser
+from dochap_tool.common_utils import utils
+from dochap_tool.common_utils import conf
 
 def show_progress(index):
     sys.stdout.write('\r')

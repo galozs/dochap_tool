@@ -1,10 +1,14 @@
 import sys
-sys.path.append("..")
-# package scripts
-from dochap_tools.common_utils import conf
-from dochap_tools.common_utils import utils
-from dochap_tools.ncbi_utils import downloader
 import os
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+# package files
+from dochap_tool.common_utils import conf
+from dochap_tool.common_utils import utils
+from dochap_tool.ncbi_utils import downloader
 
 def check_for_updates():
     # check if existing specie files need an update

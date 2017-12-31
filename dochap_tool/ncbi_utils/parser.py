@@ -5,8 +5,13 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio import SeqIO
 from functools import partial
-from dochap_tools.common_utils import utils
-from dochap_tools.common_utils import conf
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+from dochap_tool.common_utils import utils
+from dochap_tool.common_utils import conf
 
 def parse(root_dir,specie):
     """

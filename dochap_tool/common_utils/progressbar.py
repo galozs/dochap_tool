@@ -65,9 +65,12 @@ class AnimatedProgressBar(ProgressBar):
 
     def show_progress(self):
         if hasattr(self.stdout, 'isatty') and self.stdout.isatty():
-            self.stdout.write('\r')
+            pass
+            #self.stdout.write('\r')
         else:
-            self.stdout.write('\n')
+            pass
+            #self.stdout.write('\n')
+        self.stdout.write('\r')
         self.stdout.write(str(self))
         self.stdout.flush()
 

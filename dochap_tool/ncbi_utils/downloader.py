@@ -1,11 +1,15 @@
-import sys
-sys.path.append("..")
-# package scripts
-from dochap_tools.common_utils import conf
-from dochap_tools.common_utils import utils
 # outside packages
-import ftplib
+import sys
 import os
+import ftplib
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+# package scripts
+from dochap_tool.common_utils import conf
+from dochap_tool.common_utils import utils
 
 def download_readme(ftp,specie,download_sub_folder,filename='readme'):
     print(f'downloading readme of {specie}...')
@@ -37,17 +41,22 @@ def download_gbk(ftp,specie,download_sub_folder,filename='protein.gbk.gz'):
     print()
 
 
-def download_from_ncbi(species_list,download_folder):
+def download_species_from_ncbi(species_list,download_folder):
     # connect to ftp server
     ftp = utils.create_ftp_connection(conf.NCBI_FTP_ADDRESS)
     for specie in species_list:
-        print(f"Downloading {specie} files...")
-        # create directories
-        download_sub_folder = f'{download_folder}/{specie}'
-        os.makedirs(download_sub_folder,exist_ok=True)
-        # readme file download
-        download_readme(ftp,specie,download_sub_folder)
-        download_gbk(ftp,specie,download_sub_folder)
+        download_specie_from_ncbi(download_folder, specie, ftp)
+
+def download_specie_from_ncbi(download_folder, specie, ftp = None):
+    if not ftp:
+        ftp = utils.create_ftp_connection(conf.NCBI_FTP_ADDRESS)
+    print(f"Downloading {specie} files...")
+    # create directories
+    download_sub_folder = f'{download_folder}/{specie}'
+    os.makedirs(download_sub_folder,exist_ok=True)
+    # readme file download
+    download_readme(ftp,specie,download_sub_folder)
+    download_gbk(ftp,specie,download_sub_folder)
 
 
 def downloader(download_all = False):
@@ -58,7 +67,7 @@ def downloader(download_all = False):
         for name,formal_name in conf.SPECIES_DICT.items():
             if utils.yes_no_question(f"Download {formal_name} ({name})?",default=True):
                 species_list.append(formal_name)
-    download_from_ncbi(species_list,'data')
+    download_species_from_ncbi(species_list,'data')
 
 
 if __name__ == "__main__":

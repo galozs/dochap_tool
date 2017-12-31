@@ -1,13 +1,18 @@
 import sys
-sys.path.append("..")
-# package scripts
-from dochap_tools.common_utils import conf
-from dochap_tools.common_utils import progressbar
-import ftplib
 import os
+import ftplib
 import shutil
 import gzip
 import sqlite3 as lite
+import os
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+# package scripts
+from dochap_tool.common_utils import conf
+from dochap_tool.common_utils import progressbar
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) \

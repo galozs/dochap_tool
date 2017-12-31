@@ -1,5 +1,5 @@
 import os
-from dochap_tools.common_utils import utils
+from dochap_tool.common_utils import utils
 
 def parse_known_gene_to_dict(root_dir,specie):
     path = f'{root_dir}/{specie}/knownGene.txt'

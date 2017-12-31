@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.append("..")
 # package scripts
-from dochap_tools.common_utils import conf
-from dochap_tools.common_utils import utils
+from dochap_tool.common_utils import conf
+from dochap_tool.common_utils import utils
 
 def download_specie_file(ftp,specie,download_sub_folder,filename):
     print(f'downloading {filename} of {specie}...')
