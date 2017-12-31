@@ -1,9 +1,15 @@
-def parse_gtf(file_path):
+def parse_gtf_file(file_path):
     """
     Parse gtf file into transcripts dict by transcript id of exons
     """
     with open(file_path) as f:
         lines = f.readlines()    # dictionary of exons by transcript_id
+    return parse_gtf_data(lines)
+
+def parse_gtf_data(lines):
+    """
+    Parse gtf data into transcripts dcit by transcript id of exons
+    """
     transcripts = {}
     relative_end = 0
     last_transcript_id = None
@@ -27,7 +33,6 @@ def parse_gtf(file_path):
                 if exon['transcript_id'] in transcripts:
                     # if the gtf file is not built correctly,
                     # try to group exons from the same transcript together
-                    print('gtf file is not grouped correctly')
                     exons = transcripts[exon['transcript_id']]
                     relative_start = exons[-1]['relative_start']
                 else:
