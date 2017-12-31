@@ -10,17 +10,23 @@ from dochap_tool.common_utils import conf
 from dochap_tool.common_utils import utils
 from dochap_tool.ncbi_utils import downloader
 
-def check_for_updates():
+def check_for_updates(root_dir):
     # check if existing specie files need an update
     # go over all existing folders that have a readme in 'data' folder
-    root_dir = 'data'
     sub_dirs = utils.get_immediate_subdirectories(root_dir)
+    need_to_update = []
+    up_to_date = []
     for sub_dir in sub_dirs:
         if os.path.isfile(os.path.join(root_dir,sub_dir,'readme')):
             if (check_up_to_date(sub_dir,root_dir)):
-                print(f'{sub_dir} is up to date!')
+                up_to_date.append(sub_dir)
             else:
-                print(f'{sub_dir} needs an update!')
+                need_to_update.append(sub_dir)
+    print('Summary:')
+    for specie in up_to_date:
+        print(f'--- {specie} ===> Up to date!')
+    for specie in need_to_update:
+        print(f'--- {specie} ===> Update required!')
 
 
 def check_up_to_date(specie,root_dir):

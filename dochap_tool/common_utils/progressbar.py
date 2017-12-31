@@ -63,7 +63,7 @@ class AnimatedProgressBar(ProgressBar):
         super(AnimatedProgressBar, self).__init__(*args, **kwargs)
         self.stdout = kwargs.get('stdout', sys.stdout)
 
-    def show_progress(self):
+    def show_progress(self,end=False):
         if hasattr(self.stdout, 'isatty') and self.stdout.isatty():
             pass
             #self.stdout.write('\r')
@@ -72,11 +72,13 @@ class AnimatedProgressBar(ProgressBar):
             #self.stdout.write('\n')
         self.stdout.write('\r')
         self.stdout.write(str(self))
+        if end:
+            self.stdout.write('\n')
         self.stdout.flush()
 
     def finish(self):
         self.progress_to_end()
-        self.show_progress()
+        self.show_progress(end=True)
 
 
 if __name__ == '__main__':

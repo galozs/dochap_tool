@@ -15,20 +15,19 @@ def download_readme(ftp,specie,download_sub_folder,filename='readme'):
     print(f'downloading readme of {specie}...')
     ftp.sendcmd('TYPE i')
     readme_path = conf.get_readme_path(specie)
-    readme_download_path = f'{download_sub_folder}/{filename}'
+    readme_download_path = os.path.join(download_sub_folder, filename)
     readme_size = ftp.size(readme_path)
     readme_progress = utils.create_standard_progressbar(readme_size)
     with open(readme_download_path,'wb') as f:
         callback = utils.create_progressbar_callback_func(readme_progress,f)
         ftp.retrbinary(f"RETR {readme_path}",callback)
         readme_progress.finish()
-    print()
 
 def download_gbk(ftp,specie,download_sub_folder,filename='protein.gbk.gz'):
     print(f'downloading protein.gbk.gz of {specie}...')
     ftp.sendcmd('TYPE i')
     gbk_path = conf.get_protein_path(specie)
-    gbk_download_path = f'{download_sub_folder}/{filename}'
+    gbk_download_path = os.path.join(download_sub_folder, filename)
     gbk_size = ftp.size(gbk_path)
     gbk_progress = utils.create_standard_progressbar(end=gbk_size)
     with open(gbk_download_path,'wb') as f:
@@ -52,11 +51,12 @@ def download_specie_from_ncbi(download_folder, specie, ftp = None):
         ftp = utils.create_ftp_connection(conf.NCBI_FTP_ADDRESS)
     print(f"Downloading {specie} files...")
     # create directories
-    download_sub_folder = f'{download_folder}/{specie}'
+    download_sub_folder = os.path.join(download_folder, specie)
     os.makedirs(download_sub_folder,exist_ok=True)
     # readme file download
     download_readme(ftp,specie,download_sub_folder)
     download_gbk(ftp,specie,download_sub_folder)
+    print(f'{specie} files downloaded.')
 
 
 def downloader(download_all = False):

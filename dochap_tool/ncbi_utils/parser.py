@@ -1,3 +1,4 @@
+import sys
 import os
 import threading
 from Bio.Seq import Seq
