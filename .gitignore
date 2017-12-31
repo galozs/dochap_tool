@@ -3,5 +3,7 @@
 *.gz
 *.pyc
 *.swp
-data
+data/
+env/
+gtf_testing/
 __cachce__
