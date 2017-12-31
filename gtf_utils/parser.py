@@ -24,8 +24,14 @@ def parse_gtf(file_path):
                 relative_start = relative_end + 1
             # reset relative start location
             else:
-                exons = []
-                relative_start = 1
+                if exon['transcript_id'] in transcripts:
+                    # if the gtf file is not built correctly, try to group exons from the same transcript together anyway
+                    print('gtf file is not grouped correctly')
+                    exons = transcripts[exon['transcript_id']]
+                    relative_start = exons[-1]['relative_start']
+                else:
+                    exons = []
+                    relative_start = 1
             relative_end = relative_start + exon['length']
             exon['relative_start'] = relative_start
             exon['relative_end'] = relative_end
