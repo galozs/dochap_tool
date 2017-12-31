@@ -13,7 +13,7 @@ def parse_gtf(file_path):
         # check if feature is exon
         if splitted[2] == 'exon':
             exon = {}
-            exon['gene_id'] = splitted[8].split('"')[1]
+            exon['gene_symbol'] = splitted[8].split('"')[1]
             exon['transcript_id'] = splitted[8].split('"')[3]
             exon['real_start'] = int(splitted[3])
             exon['real_end'] = int(splitted[4])
@@ -25,7 +25,8 @@ def parse_gtf(file_path):
             # reset relative start location
             else:
                 if exon['transcript_id'] in transcripts:
-                    # if the gtf file is not built correctly, try to group exons from the same transcript together anyway
+                    # if the gtf file is not built correctly,
+                    # try to group exons from the same transcript together
                     print('gtf file is not grouped correctly')
                     exons = transcripts[exon['transcript_id']]
                     relative_start = exons[-1]['relative_start']
@@ -37,8 +38,20 @@ def parse_gtf(file_path):
             exon['relative_end'] = relative_end
             last_transcript_id = exon['transcript_id']
             exons.append(exon)
-            transcripts[exon['transcript_id']] = {'exons': exons}
+            transcripts[exon['transcript_id']] = exons
     return transcripts
+
+
+def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
+    def query_function(transcript_list):
+        if len(transcript_list) > 0:
+            return transcript_list[0]['gene_symbol'].lower() == gene_symbol.lower()
+    transcripts_by_gene = {
+            t_id: t_list for
+            t_id, t_list in transcripts_dict.items() if
+            query_function(t_list)
+    }
+    return transcripts_by_gene
 
 
 def parser():
