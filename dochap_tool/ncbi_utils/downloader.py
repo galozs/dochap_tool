@@ -60,6 +60,9 @@ def download_specie_from_ncbi(download_folder, specie, ftp = None):
 
 
 def downloader(download_all = False):
+    '''
+    Download species into 'data' folder
+    '''
     species_list = []
     if download_all:
         species_list = conf.SPECIES
