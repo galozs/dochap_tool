@@ -46,17 +46,74 @@ def parse_gtf_data(lines):
             transcripts[exon['transcript_id']] = exons
     return transcripts
 
-
 def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
+    """
+    Get transcripts of the given gene symbol
+    Return {transcript_id : exon_list}
+    """
     def query_function(transcript_list):
         if len(transcript_list) > 0:
             return transcript_list[0]['gene_symbol'].lower() == gene_symbol.lower()
+
     transcripts_by_gene = {
             t_id: t_list for
             t_id, t_list in transcripts_dict.items() if
             query_function(t_list)
     }
     return transcripts_by_gene
+
+
+def get_all_genes_symbols(transcripts_dict):
+    """
+    Get a list of all the unique gene symbols
+    """
+    genes = {
+            t_list[0]['gene_symbol'].lower()
+            for t_list in transcripts_dict.values()
+    }
+    genes = list(genes)
+    return genes
+
+
+def get_all_transcript_ids(transcripts_dict):
+    """
+    Get a list of all the unique transcripts ids
+    """
+    ids = list(set(transcripts_dict.keys()))
+    return ids
+
+
+def get_dictionary_of_ids_and_genes(transcripts_dict):
+    """
+    Get a dictionary of {genes:[t_id1,t_id2,...]}
+    """
+    final_dict = {}
+    for t_id t_list in transcripts_dict.items()
+        if not len(t_list > 0):
+            continue
+        symbol = t_list[0]['gene_symbol']
+        if symbol in final_dict:
+            final_dict[symbol].append(t_id)
+        else:
+            final_dict[symbol] = [t_id]
+    return final_dict
+
+
+def get_dictionary_of_exons_and_genes(transcripts_dict):
+    """
+    Get a dictionary of {genes:[{t_id1:t_list1}]}
+    """
+    final_dict = {}
+    for t_id t_list in transcripts_dict.items()
+        if not len(t_list > 0):
+            continue
+        symbol = t_list[0]['gene_symbol']
+        if symbol in final_dict:
+            final_dict[symbol].append({t_id:t_list})
+        else:
+            final_dict[symbol] = [{t_id:t_list}]
+    return final_dict
+
 
 
 def parser():

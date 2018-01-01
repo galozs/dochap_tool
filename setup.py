@@ -1,14 +1,16 @@
 from setuptools import setup
 
-with open('./requirements.txt') as f:
-    requirements = f.read().splitlines()
+import sys
+if sys.version_info < (3,6):
+    sys.exit('Sorry, Python < 3.6 is not supported')
 
 setup(
     name='dochap_tool',
-    version='1.0',
+    version='1.0.3',
     description='Tool for handling genetic transcripts',
     author='Nitzan Elbaz',
     author_email='elbazni@post.bgu.ac.il',
+    url	= 'https://github.com/nitzanel/dochap_tool',
     packages=[
         'dochap_tool',
         'dochap_tool.common_utils',
@@ -19,5 +21,8 @@ setup(
         'dochap_tool.draw_utils',
         'dochap_tool.compare_utils',
     ],
-    install_requires = requirements,
+    install_requires = [
+        'biopython',
+        'svgwrite',
+    ],
 )
