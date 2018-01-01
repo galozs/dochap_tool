@@ -88,7 +88,7 @@ def get_dictionary_of_ids_and_genes(transcripts_dict):
     Get a dictionary of {genes:[t_id1,t_id2,...]}
     """
     final_dict = {}
-    for t_id t_list in transcripts_dict.items()
+    for t_id ,t_list in transcripts_dict.items():
         if not len(t_list > 0):
             continue
         symbol = t_list[0]['gene_symbol']
