@@ -1,14 +1,18 @@
 def parse_gtf_file(file_path):
     """
-    Parse gtf file into transcripts dict by transcript id of exons
+    @description Parse gtf file into transcripts dict by transcript id of exons
+    @param file_path (string)
+    @return (dict) of the form {'id': [exons]}
     """
     with open(file_path) as f:
         lines = f.readlines()    # dictionary of exons by transcript_id
     return parse_gtf_data(lines)
-
+)
 def parse_gtf_data(lines):
     """
-    Parse gtf data into transcripts dcit by transcript id of exons
+    @description Parse gtf data into transcripts dcit by transcript id of exons
+    @param lines (string[])
+    @return (dict) of the form {'id': [exons]}
     """
     transcripts = {}
     relative_end = 0
@@ -49,8 +53,10 @@ def parse_gtf_data(lines):
 
 def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
     """
-    Get transcripts of the given gene symbol
-    Return {transcript_id : exon_list}
+    @description Get transcripts of the given gene symbol
+    @param transcripts_dict (dict of list)
+    @param gene_symbol (string)
+    @return (dict) of the form {transcript_id : [exons]}
     """
     def query_function(transcript_list):
         if len(transcript_list) > 0:
@@ -66,7 +72,9 @@ def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
 
 def get_all_genes_symbols(transcripts_dict):
     """
-    Get a list of all the unique gene symbols
+    @description Get a list of all the unique gene symbols
+    @param transcripts_dict (dict of list)
+    @return (string[])
     """
     genes = {
             t_list[0]['gene_symbol'].lower()
@@ -78,7 +86,9 @@ def get_all_genes_symbols(transcripts_dict):
 
 def get_all_transcript_ids(transcripts_dict):
     """
-    Get a list of all the unique transcripts ids
+    @description Get a list of all the unique transcripts ids
+    @param transcripts_dict (string[])
+    @retrun (string[])
     """
     ids = list(set(transcripts_dict.keys()))
     return ids
@@ -86,7 +96,9 @@ def get_all_transcript_ids(transcripts_dict):
 
 def get_dictionary_of_ids_and_genes(transcripts_dict):
     """
-    Get a dictionary of {genes:[t_id1,t_id2,...]}
+    @description Get a dictionary of {genes:[t_id1,t_id2,...]}
+    @param transcripts_dict (dict)
+    @return (dict) of the form {symbol: [t_id]}
     """
     final_dict = {}
     for t_id ,t_list in transcripts_dict.items():
@@ -102,7 +114,9 @@ def get_dictionary_of_ids_and_genes(transcripts_dict):
 
 def get_dictionary_of_exons_and_genes(transcripts_dict):
     """
-    Get a dictionary of {genes:[{t_id1:t_list1}]}
+    @description Get a dictionary of {genes:[{t_id1:t_list1}]}
+    @param transcripts_dict (dict)
+    @return (dict) of the form {symbol : [{t_id:t_list}]
     """
     final_dict = {}
     for t_id ,t_list in transcripts_dict.items():
@@ -118,6 +132,7 @@ def get_dictionary_of_exons_and_genes(transcripts_dict):
 
 
 def parser():
+    print('no cli yet!')
     return
 
 
