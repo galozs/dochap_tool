@@ -14,7 +14,11 @@ expression = re.compile(r'(?<=\[)([0-9:]*)(?=\])')
 
 def get_exons_from_transcript_id(root_dir, specie, transcript_id):
     """
-    Query the database and return list of dictionaries expressing exons data
+    @description Query the database and return list of dictionaries expressing exons data
+    @param root_dir (string)
+    @param specie (string)
+    @param transcript_id (string)
+    @return (list of dict)
     """
     # query the knownGene table
     conn = utils.get_connection_object(root_dir,specie)
@@ -26,6 +30,13 @@ def get_exons_from_transcript_id(root_dir, specie, transcript_id):
 
 
 def get_exons_from_gene_symbol(root_dir, specie, gene_symbol):
+    '''
+    @description Query the database and return dictionary of exons by id of a given gene symbol
+    @param root_dir (string)
+    @param specie (string)
+    @param gene_symbol (string)
+    @return (dict)
+    '''
     conn = utils.get_connection_object(root_dir,specie)
     with conn:
         transcript_ids = get_transcript_ids_of_gene_symbol(conn,gene_symbol)
@@ -37,6 +48,12 @@ def get_exons_from_gene_symbol(root_dir, specie, gene_symbol):
 
 
 def get_known_gene_transcript(conn, transcript_id):
+    '''
+    @description Query the database and get data from the known_gene table
+    @param conn (sqlite3.connect)
+    @param transcript_id (string)
+    @return (named tuple)
+    '''
     cursor = conn.cursor()
     query = f'SELECT * from knownGene WHERE name = ?'
     cursor.execute(query, (transcript_id, ))
@@ -46,7 +63,9 @@ def get_known_gene_transcript(conn, transcript_id):
 
 def get_exons_from_transcript_dict(transcript_data):
     """
-    Extract exons from a given transcript dictionary
+    @Description Extract exons from a given transcript dictionary
+    @param transcript_data (dict)
+    @return (list)
     """
     exons = []
     # calculate length of each exon
@@ -63,7 +82,10 @@ def get_exons_from_transcript_dict(transcript_data):
 
 def set_relative_exons_position(exons, start_mod=0):
     """
-    Squash exons together to be concussive
+    @description Squash exons together to be concussive
+    @param exons (list)
+    @param start_mod (int) - - (default=0)
+    @return (list)
     """
     last_end = 0
     for exon in exons:
@@ -75,7 +97,11 @@ def set_relative_exons_position(exons, start_mod=0):
 
 def get_domains_of_gene_symbol(root_dir, specie, gene_symbol):
     """
-    reuturn list of lists of domains dictionaries, for every variant of the gene.
+    @description reuturn list of lists of domains dictionaries, for every variant of the gene.
+    @param root_dir (string)
+    @param specie (string)
+    @param gene_symbol (string)
+    @return (list of list of dict)
     """
     conn = utils.get_connection_object(root_dir,specie)
     with conn:
@@ -94,7 +120,10 @@ def get_domains_of_gene_symbol(root_dir, specie, gene_symbol):
 
 def combine_sites_and_regions(sites_string, regions_string):
     """
-    reuturn list of domains dictionaries
+    @description reuturn list of domains dictionaries
+    @param sites_string (string)
+    @param regions_string (string)
+    @return (list of dict)
     """
     sites = extract_domains_data(sites_string, 'site')
     regions = extract_domains_data(regions_string, 'region')
@@ -103,6 +132,12 @@ def combine_sites_and_regions(sites_string, regions_string):
 
 
 def extract_domains_data(domains_string, dom_type):
+    '''
+    @description Extract information from the domain string using regex.
+    @param domains_string (string)
+    @param dom_type (string) - type of domain (region,site)
+    @return (list of dict)
+    '''
     domain_strings_list = re.findall(expression, domains_string)
     domains_description = domains_string.split(r'],')
     domains = []
@@ -121,7 +156,10 @@ def extract_domains_data(domains_string, dom_type):
 
 def get_transcript_ids_of_gene_symbol(conn, gene_symbol):
     """
-    Return transcript_id list of given gene name
+    @description Return transcript_id list of given gene name
+    @param conn (sqlite3.connect)
+    @param gene_symbol (string)
+    @return (list of string)
     """
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE alias = ?'
@@ -133,8 +171,11 @@ def get_transcript_ids_of_gene_symbol(conn, gene_symbol):
 
 def get_gene_aliases_of_transcript_id(conn, transcript_id):
     """
-    return all known aliases of a given transcript id in a list
+    @description return all known aliases of a given transcript id in a list
     return None if no aliases has been found
+    @param conn (sqlite3.connect)
+    @param transcript_id (string)
+    @return (None|list of string)
     """
     cursor = conn.cursor()
     query = 'SELECT * from alias WHERE transcript_id = ?'
