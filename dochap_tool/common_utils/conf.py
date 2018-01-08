@@ -20,10 +20,20 @@ PROGRESSBAR_WIDTH = 10
 
 DROP_TABLE_TEMPLATE = "drop table if exists {}"
 def get_protein_path(specie):
+    '''
+    @param specie (string) - specie name
+    '''
     return PROT_PATH_TEMPLATE.format(specie)
 def get_readme_path(specie):
+    '''
+    @param specie (string) - specie name
+    '''
     return README_PATH_TEMPLATE.format(specie)
 def get_ucsc_file_path(specie,filename):
+    '''
+    @param specie (string) - specie name
+    @param filename (string) - name of file
+    '''
     version_prefix = UCSC_DICT[specie]
     return UCSC_TEMPLATE.format(version_prefix,filename)
 
