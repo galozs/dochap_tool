@@ -1,4 +1,5 @@
 import svgwrite
+from dochap_tool.common_utils import utils
 from svgwrite import cm, mm
 
 
@@ -19,9 +20,13 @@ def draw_test(w, h):
 
 def draw_exons(exons, transcript_id):
     """Draw rectangles representing exons"""
-    dwg = svgwrite.Drawing(size=(10*cm, 10*mm), profile='tiny', debug=True)
+    dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
+    if len(exons) == 0:
+        return None
+    squashed_start = exons[0]['relative_start']
+    squashed_end = exons[-1]['relative_end']
     for exon in exons:
-        rect = create_exon_rect(dwg, exon)
+        rect = create_exon_rect(dwg, exon, squashed_start, squashed_end)
         dwg.add(rect)
     text = add_text(dwg, transcript_id)
     dwg.add(text)
@@ -30,10 +35,17 @@ def draw_exons(exons, transcript_id):
 
 def draw_exons_real(exons, transcript_id):
     """Draw rectangles representing exons real positions"""
-    dwg = svgwrite.Drawing(size=(10*cm, 10*mm), profile='tiny', debug=True)
+    # draw line
+    # on the line draw rectangles representing exons with introns spaces between them
+    if len(exons) == 0:
+        return None
+    dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
+    transcript_start = exons[0]['real_start']
+    transcript_end = exons[-1]['real_end']
     for exon in exons:
-        rect = create_exon_rect(dwg, exon, real_start=True)
+        rect = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end)
         dwg.add(rect)
+    add_line(dwg, exons[0]['real_start'], exons[-1]['real_end'])
     text = add_text(dwg, transcript_id)
     dwg.add(text)
     return dwg.tostring()
@@ -50,14 +62,34 @@ def draw_domains(domains, variant_index):
     return dwg.tostring()
 
 
-def create_exon_rect(dwg, exon, real_start=False):
-    start = exon['real_start'] if real_start else exon['relative_start']
-    length = exon['length']
+def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end):
+    start = exon['real_start']
+    normalized_start = utils.clamp_value(start, transcript_start, transcript_end) * 100
+    end  = exon['real_end']
+    normalized_end = utils.clamp_value(end, transcript_start, transcript_end) * 100
+    normalized_length = abs(normalized_end - normalized_start)
     color = ['blue', 'green', 'yellow', 'red']
     c = color[exon['index'] % 4]
     rect = dwg.rect(
-        insert=((start/50)*mm, 5*mm),
-        size=((length/50)*mm, 5*mm),
+        insert=(normalized_start * mm, 5 * mm),
+        size=(normalized_length * mm, 5 * mm),
+        fill=c,
+        opacity=0.5
+    )
+    return rect
+
+
+def create_exon_rect(dwg, exon, squashed_start, squashed_end):
+    start = exon['relative_start']
+    normalized_start = utils.clamp_value(start, squashed_start, squashed_end) * 100
+    end = exon['relative_end']
+    normalized_end = utils.clamp_value(end, squashed_start, squashed_end) * 100
+    normalized_length = abs(normalized_start - normalized_end)
+    color = ['blue', 'green', 'yellow', 'red']
+    c = color[exon['index'] % 4]
+    rect = dwg.rect(
+        insert=(normalized_start * mm, 5 * mm),
+        size=(normalized_length * mm, 5 * mm),
         fill=c,
         opacity=0.5
     )
@@ -79,6 +111,15 @@ def create_domain_rect(dwg, domain):
     return rect
 
 
+def add_line(dwg, start_value, end_value):
+    normalized_start_position = (0*mm, 7.5*mm)
+    normalized_end_position = (120*mm, 7.5*mm)
+    dwg.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
+    dwg.add(dwg.text(insert=(0*mm, 3*mm), text=str(start_value)))
+    dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(start_value)))
+    return None
+
+
 def add_text(dwg, t):
-    text = dwg.text(insert=(5*mm, 4.5*mm), text=t)
+    text = dwg.text(insert=(30*mm, 4.5*mm), text=t)
     return text

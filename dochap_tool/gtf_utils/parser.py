@@ -7,7 +7,7 @@ def parse_gtf_file(file_path):
     with open(file_path) as f:
         lines = f.readlines()    # dictionary of exons by transcript_id
     return parse_gtf_data(lines)
-)
+
 def parse_gtf_data(lines):
     """
     @description Parse gtf data into transcripts dcit by transcript id of exons
@@ -50,6 +50,7 @@ def parse_gtf_data(lines):
             exons.append(exon)
             transcripts[exon['transcript_id']] = exons
     return transcripts
+
 
 def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
     """

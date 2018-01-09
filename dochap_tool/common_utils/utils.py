@@ -4,7 +4,8 @@ import ftplib
 import shutil
 import gzip
 import sqlite3 as lite
-import os
+from pygments import highlight, lexers, formatters
+import json
 # add to path if need to
 import_path = '/'.join(__file__.split('/')[:-1])
 import_path = os.path.normpath(os.path.join(import_path,'../'))
@@ -149,3 +150,25 @@ def get_connection_object(root_dir,specie):
     conn = lite.connect(path)
     conn.row_factory = lite.Row
     return conn
+
+
+def clamp_value(value, min_value, max_value):
+    '''
+    clamp value between min and max
+    return value from 0 to 1
+    '''
+    used_value = min(value, max_value)
+    used_value = max(used_value, min_value)
+    return (used_value - min_value) / (max_value - min_value)
+
+
+# coloring json for ease on the eyes
+def format_and_color(param):
+    """
+    format and color the given parameter
+    @param param {any}
+    @return {str}
+    """
+    formatted_json = json.dumps(param,indent=4)
+    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter())
+    return colorful_json
