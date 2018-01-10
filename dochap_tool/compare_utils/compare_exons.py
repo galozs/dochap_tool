@@ -169,6 +169,26 @@ def get_transcript_ids_of_gene_symbol(conn, gene_symbol):
     return ids
 
 
+def get_gene_aliases_of_gene_symbol(conn, symbol):
+    """
+    @description return all aliases of a given gene symbol
+    @param conn {sqlite3.connect}
+    @param symbol {string}
+    @return {None| list of string}
+    """
+    cursor = conn.cursor()
+    query = 'SELECT * from alias WHERE alias = ?'
+    cursor.execute(query, (symbol, ))
+    results = cursor.fetchall()
+    if results:
+        unique_aliases = set()
+        unique_transcripts_ids = list({result['transcript_id'] for result in results})
+        for t_id in unique_transcripts_ids:
+            aliases = get_gene_aliases_of_transcript_id(conn, t_id)
+            unique_aliases.update(aliases)
+        return list(unique_aliases)
+    return None
+
 def get_gene_aliases_of_transcript_id(conn, transcript_id):
     """
     @description return all known aliases of a given transcript id in a list
@@ -182,7 +202,7 @@ def get_gene_aliases_of_transcript_id(conn, transcript_id):
     cursor.execute(query, (transcript_id, ))
     results = cursor.fetchall()
     if results:
-        aliases = [result['gene_alias'] for result in results]
+        aliases = [result['alias'] for result in results]
         return aliases
     return None
 

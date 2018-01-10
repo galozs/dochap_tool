@@ -2,6 +2,7 @@ import svgwrite
 from dochap_tool.common_utils import utils
 from svgwrite import cm, mm
 
+colors = ['grey', 'black', 'orange', 'teal','green','blue','red','brown','pink','yellow']
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -68,8 +69,7 @@ def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end):
     end  = exon['real_end']
     normalized_end = utils.clamp_value(end, transcript_start, transcript_end) * 100
     normalized_length = abs(normalized_end - normalized_start)
-    color = ['blue', 'green', 'yellow', 'red']
-    c = color[exon['index'] % 4]
+    c = colors[exon['index'] % len(colors)]
     rect = dwg.rect(
         insert=(normalized_start * mm, 5 * mm),
         size=(normalized_length * mm, 5 * mm),
@@ -85,8 +85,7 @@ def create_exon_rect(dwg, exon, squashed_start, squashed_end):
     end = exon['relative_end']
     normalized_end = utils.clamp_value(end, squashed_start, squashed_end) * 100
     normalized_length = abs(normalized_start - normalized_end)
-    color = ['blue', 'green', 'yellow', 'red']
-    c = color[exon['index'] % 4]
+    c = colors[exon['index'] % len(colors)]
     rect = dwg.rect(
         insert=(normalized_start * mm, 5 * mm),
         size=(normalized_length * mm, 5 * mm),
@@ -100,8 +99,7 @@ def create_domain_rect(dwg, domain):
     start = domain['start']
     length = domain['end'] - domain['start']
     # TODO different colors
-    color = ['grey', 'black', 'orange', 'teal']
-    c = color[domain['index'] % 4]
+    c = colors[domain['index'] % len(colors)]
     rect = dwg.rect(
         insert=((start/50)*mm, 5*mm),
         size=((length/50)*mm, 5*mm),
@@ -116,7 +114,7 @@ def add_line(dwg, start_value, end_value):
     normalized_end_position = (120*mm, 7.5*mm)
     dwg.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
     dwg.add(dwg.text(insert=(0*mm, 3*mm), text=str(start_value)))
-    dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(start_value)))
+    dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(end_value)))
     return None
 
 

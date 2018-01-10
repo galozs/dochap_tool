@@ -23,8 +23,9 @@ def parse_known_gene_to_dict(root_dir,specie):
             data['cds_start'] = splitted_line[5]
             data['cds_end'] = splitted_line[6]
             data['exon_count'] = splitted_line[7]
-            data['exon_starts'] = offset_exons(splitted_line[8])
-            data['exon_ends'] = offset_exons(splitted_line[9])
+            # TODO: if offset is needed, use it.
+            data['exon_starts'] = splitted_line[8]
+            data['exon_ends'] = splitted_line[9]
             data['protein_id'] = splitted_line[10]
             data['align_id'] = splitted_line[11]
             names[data['name']] = data

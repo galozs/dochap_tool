@@ -1,3 +1,13 @@
+import sys
+import os
+# add to path if need to
+import_path = '/'.join(__file__.split('/')[:-1])
+import_path = os.path.normpath(os.path.join(import_path,'../'))
+if import_path not in sys.path:
+    sys.path.append(os.path.join(import_path))
+from dochap_tool.common_utils import utils
+from dochap_tool.compare_utils import compare_exons
+
 def parse_gtf_file(file_path):
     """
     @description Parse gtf file into transcripts dict by transcript id of exons
@@ -7,6 +17,7 @@ def parse_gtf_file(file_path):
     with open(file_path) as f:
         lines = f.readlines()    # dictionary of exons by transcript_id
     return parse_gtf_data(lines)
+
 
 def parse_gtf_data(lines):
     """
@@ -23,8 +34,14 @@ def parse_gtf_data(lines):
         # check if feature is exon
         if splitted[2] == 'exon':
             exon = {}
-            exon['gene_symbol'] = splitted[8].split('"')[1]
-            exon['transcript_id'] = splitted[8].split('"')[3]
+            exon_data = splitted[8].split('"')
+            exon['gene_symbol'] = exon_data[1]
+            exon['transcript_id'] = exon_data[3]
+            # placeholder value incase no fpkm value
+            exon['fpkm'] = -1
+            for index, remain in enumerate(exon_data):
+                if 'fpkm' in remain.lower() and (index+1) < len(exon_data):
+                    exon['fpkm'] = float(exon_data[index+1])
             exon['real_start'] = int(splitted[3])
             exon['real_end'] = int(splitted[4])
             exon['index'] = int(splitted[8].split('"')[5]) - 1
@@ -52,21 +69,96 @@ def parse_gtf_data(lines):
     return transcripts
 
 
-def get_transcripts_by_gene_symbol(transcripts_dict, gene_symbol):
+def get_gene_symbol_of_transcript_id(transcripts_dict, transcript_id):
     """
-    @description Get transcripts of the given gene symbol
-    @param transcripts_dict (dict of list)
-    @param gene_symbol (string)
-    @return (dict) of the form {transcript_id : [exons]}
+    @description get the gene_symbol of a given transcript_id from the user gtf data
+    @param transcripts_dict (dict)
+    @param transcript_id (string)
+    @return (None|string)
     """
-    def query_function(transcript_list):
+    if transcript_id in transcripts_dict:
+        t_list = transcripts_dict[transcript_id]
+        if len(t_list) > 0:
+            return t_list[0]['gene_symbol'].lower()
+    return None
+
+def get_transcripts_like_id(transcripts_dict, transcript_id):
+    """
+    @description get all transcripts that have the same gene symbol as the given transcriptid
+    @param transcripts_dict (dict)
+    @param transcript_id (string)
+    @return (dict)
+    """
+    symbol = get_gene_symbol_of_transcript_id(transcripts_dict, transcript_id)
+    if not symbol:
+        return None
+
+    def query_function(transcript_list, symbol):
         if len(transcript_list) > 0:
-            return transcript_list[0]['gene_symbol'].lower() == gene_symbol.lower()
+            return transcript_list[0]['gene_symbol'].lower() == symbol
 
     transcripts_by_gene = {
             t_id: t_list for
             t_id, t_list in transcripts_dict.items() if
-            query_function(t_list)
+            query_function(t_list, symbol)
+    }
+    return transcripts_by_gene
+
+
+def get_transcripts_like_ids(transcripts_dict, transcript_id_list):
+    """
+    @description get all transcripts that have the same gene symbol as atleast one of the given transcript_ids in the list
+    @param transcripts_dict (dict)
+    @param transcript_id (list of string)
+    @return (dict)
+    """
+    def wrapper(t_id):
+        return get_gene_symbol_of_transcript_id(transcripts_dict, t_id)
+
+    unique_symbols = list(set(map(wrapper, transcript_id_list)))
+    if not unique_symbols:
+        return None
+
+    def query_function(transcript_list, symbols):
+        if len(transcript_list) > 0:
+            return transcript_list[0]['gene_symbol'].lower() in symbols or transcript_list[0]['transcript_id'].lower() in symbols
+
+    transcripts_by_gene = {
+            t_id: t_list for
+            t_id, t_list in transcripts_dict.items() if
+            query_function(t_list, unique_symbols)
+    }
+    return transcripts_by_gene
+
+
+
+
+
+def get_transcripts_by_gene_symbol(root_dir, specie, transcripts_dict, gene_symbol):
+    """
+    @description Get transcripts of the given gene symbol
+    @param root_dir (string)
+    @param specie (string)
+    @param transcripts_dict (dict of list)
+    @param gene_symbol (string)
+    @return (dict) of the form {transcript_id : [exons]}
+    """
+    conn = utils.get_connection_object(root_dir, specie)
+    with conn:
+        aliases = compare_exons.get_gene_aliases_of_gene_symbol(conn, gene_symbol)
+    if aliases:
+        aliases = list(map(str.lower, aliases))
+    else:
+        aliases = [gene_symbol.lower()]
+
+    def query_function(transcript_list, aliases):
+        if len(transcript_list) > 0:
+            return transcript_list[0]['gene_symbol'].lower() in aliases or transcript_list[0]['transcript_id'].lower() in aliases
+
+    transcripts_by_gene = {
+            t_id: t_list for
+            t_id, t_list in transcripts_dict.items() if
+            query_function(t_list, aliases)
     }
     return transcripts_by_gene
 
