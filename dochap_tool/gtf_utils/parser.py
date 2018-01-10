@@ -44,6 +44,8 @@ def parse_gtf_data(lines):
                     exon['fpkm'] = float(exon_data[index+1])
             exon['real_start'] = int(splitted[3])
             exon['real_end'] = int(splitted[4])
+            exon['strand'] = int(splitted[5])
+            exon['sign'] = splitted[6]
             exon['index'] = int(splitted[8].split('"')[5]) - 1
             exon['length'] = abs(exon['real_end'] - exon['real_start'])
             # TODO add fpkm/rpkm/tpm

@@ -19,6 +19,31 @@ def draw_test(w, h):
     return dwg.tostring()
 
 
+def draw_transcripts(transcripts):
+    """
+    Draw multiple transcripts.
+    @param transcripts (dict) of the form {t_id : [exons]}
+    @return (list of string) list of svgs
+    """
+    if len(transcripts) == 0:
+        return None
+    starts = [transcript[0]['real_start'] for transcript in transcripts.values()]
+    ends = [transcript[-1]['real_end'] for transcript in transcripts.values()]
+    # probably need a check to see what strand it is.
+    # there is a 'sign' value stored in every exon in the gtf files
+    min_start = min(starts)
+    max_end = max(ends)
+    svgs = {}
+    show_line_numbers = True
+    for t_id, exons in transcripts.items():
+        start_end_info = (min_start, max_end)
+        svg = draw_exons_real(exons, t_id, start_end_info, show_line_numbers)
+        svgs[t_id] = svg
+        show_line_numbers = False
+    return svgs
+
+
+
 def draw_exons(exons, transcript_id):
     """Draw rectangles representing exons"""
     dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
@@ -34,19 +59,25 @@ def draw_exons(exons, transcript_id):
     return dwg.tostring()
 
 
-def draw_exons_real(exons, transcript_id):
+def draw_exons_real(exons, transcript_id, start_end_info = None, draw_line_numbers = True):
     """Draw rectangles representing exons real positions"""
     # draw line
     # on the line draw rectangles representing exons with introns spaces between them
     if len(exons) == 0:
         return None
     dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
-    transcript_start = exons[0]['real_start']
-    transcript_end = exons[-1]['real_end']
+
+    if not start_end_info:
+        transcript_start = exons[0]['real_start']
+        transcript_end = exons[-1]['real_end']
+    else:
+        transcript_start = start_end_info[0]
+        transcript_end = start_end_info[1]
+
     for exon in exons:
         rect = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end)
         dwg.add(rect)
-    add_line(dwg, exons[0]['real_start'], exons[-1]['real_end'])
+    add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
     text = add_text(dwg, transcript_id)
     dwg.add(text)
     return dwg.tostring()
@@ -69,7 +100,8 @@ def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end):
     end  = exon['real_end']
     normalized_end = utils.clamp_value(end, transcript_start, transcript_end) * 100
     normalized_length = abs(normalized_end - normalized_start)
-    c = colors[exon['index'] % len(colors)]
+    #c = colors[exon['index'] % len(colors)]
+    c = colors[5]
     rect = dwg.rect(
         insert=(normalized_start * mm, 5 * mm),
         size=(normalized_length * mm, 5 * mm),
@@ -109,12 +141,13 @@ def create_domain_rect(dwg, domain):
     return rect
 
 
-def add_line(dwg, start_value, end_value):
+def add_line(dwg, start_value, end_value, draw_line_numbers = True):
     normalized_start_position = (0*mm, 7.5*mm)
     normalized_end_position = (120*mm, 7.5*mm)
     dwg.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
-    dwg.add(dwg.text(insert=(0*mm, 3*mm), text=str(start_value)))
-    dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(end_value)))
+    if draw_line_numbers:
+        dwg.add(dwg.text(insert=(0*mm, 3*mm), text=str(start_value)))
+        dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(end_value)))
     return None
 
 
