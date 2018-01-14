@@ -6,19 +6,19 @@ from svgwrite import cm, mm
 colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
 
 TEXT_X = 121
-TEXT_Y = 25
+TEXT_Y = 35
 DRAWING_SIZE_X = 140
-DRAWING_SIZE_Y = 30
+DRAWING_SIZE_Y = 40
 EXON_START_X = 10
 EXON_END_X = 110
-EXON_Y = 22
+EXON_Y = 32
 LINE_START_X = 0
 LINE_END_X = 120
-LINE_Y = 24.5
+LINE_Y = 34.5
 EXON_HEIGHT = 5
 LINE_ROWS_HALF_HEIGHT = 2
 TOOLTIP_SIZE_X = 40
-TOOLTIP_SIZE_Y = 20
+TOOLTIP_SIZE_Y = 30
 
 
 def draw_test(w, h):
@@ -116,10 +116,10 @@ def draw_exons_real(exons, transcript_id, start_end_info = None, draw_line_numbe
         transcript_start = start_end_info[0]
         transcript_end = start_end_info[1]
 
+    add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
     for exon in exons:
         exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, exons_color)
         dwg.add(exon_tooltip_group)
-    add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
     text = add_text(dwg, transcript_id)
     dwg.add(text)
     return dwg.tostring()
@@ -173,19 +173,40 @@ def add_tooltip(dwg: svgwrite.Drawing, rect_insert: tuple, rect_size: tuple, too
     :rtype: svgwrite.container.Group
     """
     tooltip_group = dwg.g(class_="special_rect_tooltip")
-    #tooltip_group.translate(tx=rect_insert[0], ty=rect_insert[1])
-    tooltip_insert = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), rect_insert[1] - TOOLTIP_SIZE_Y
     tooltip_size = (TOOLTIP_SIZE_X,TOOLTIP_SIZE_Y)
-    tooltip_group.add(dwg.rect(insert = to_size(tooltip_insert,mm), size = to_size(tooltip_size, mm)))
-    tooltip_text = json.dumps(tooltip_data,indent=4)
-    text = dwg.text(insert = to_size(tooltip_insert,mm), text="")
+    tooltip_insert = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), rect_insert[1] - TOOLTIP_SIZE_Y
+    tooltip_group.add(dwg.rect(
+        insert = to_size(tooltip_insert, mm),
+        size = to_size(tooltip_size, mm),
+        rx = 2*mm,
+        ry = 2*mm,
+    ))
+    text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-1),mm), text="")
+    tooltip_data = extract_tooltip(tooltip_data)
     num_lines = len(tooltip_data)
     for index, (key, value) in enumerate(tooltip_data.items()):
         line = f'{key}: {value}'
         height = tooltip_size[1]/num_lines
-        text.add(svgwrite.text.TSpan(text = line,x =[tooltip_insert[0]*mm],  dy = [height*mm]))
+        text.add(svgwrite.text.TSpan(
+            text = line,
+            x = [(tooltip_insert[0]+1)*mm],
+            dy = [height*mm],
+            text_anchor="start"
+        ))
     tooltip_group.add(text)
     return tooltip_group
+
+
+def extract_tooltip(exon: dict) -> dict:
+    params = ['index', 'length', 'real_start', 'real_end', 'relative_start', 'relative_end']
+    name_dict= {'real_start':'genomic_start', 'real_end':'genomic_end'}
+    extracted_params= {switch_names(key, name_dict):value for key,value in exon.items() if key in params}
+    return extracted_params
+
+def switch_names(key: str, name_dict: dict) -> str:
+    if key in name_dict:
+        return name_dict[key].replace('_', ' ')
+    return key.replace('_', ' ')
 
 def create_exon_rect(dwg: svgwrite.Drawing, exon: dict, squashed_start: int, squashed_end: int) -> svgwrite.shapes.Rect:
     """create_exon_rect
