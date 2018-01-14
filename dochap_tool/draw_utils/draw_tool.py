@@ -36,7 +36,24 @@ def draw_test(w, h):
     return dwg.tostring()
 
 
-def draw_combination(user_transcripts, user_color, db_transcripts, db_color):
+def draw_combination(
+        user_transcripts: dict,
+        user_color: str,
+        db_transcripts: dict,
+        db_color: str
+        ) -> tuple:
+    """draw_combination
+
+    :param user_transcripts:
+    :type user_transcripts: dict
+    :param user_color:
+    :type user_color: str
+    :param db_transcripts:
+    :type db_transcripts: dict
+    :param db_color:
+    :type db_color: str
+    :rtype: dict, dict, str
+    """
     transcripts_lists = (user_transcripts, db_transcripts)
     min_starts = []
     max_ends = []
@@ -56,11 +73,23 @@ def draw_combination(user_transcripts, user_color, db_transcripts, db_color):
 
 
 
-def draw_transcripts(transcripts, exons_color = 'blue', start_end_info = None, numbered_line = True):
-    """
-    Draw multiple transcripts.
-    @param transcripts (dict) of the form {t_id : [exons]}
-    @return (list of string) list of svgs
+def draw_transcripts(
+        transcripts: dict,
+        exons_color:str = 'blue',
+        start_end_info: tuple = None,
+        numbered_line: bool = True
+        ) -> list:
+    """draw transcripts
+
+    :param transcripts:
+    :type transcripts: dict
+    :param exons_color:
+    :type exons_color: str
+    :param start_end_info:
+    :type start_end_info: tuple
+    :param numbered_line:
+    :type numbered_line: bool
+    :rtype: list
     """
     if len(transcripts) == 0:
         return None
@@ -85,7 +114,15 @@ def draw_transcripts(transcripts, exons_color = 'blue', start_end_info = None, n
 
 
 
-def draw_exons(exons, transcript_id):
+def draw_exons(exons: list, transcript_id: str) -> str:
+    """draw_exons
+
+    :param exons:
+    :type exons: list
+    :param transcript_id:
+    :type transcript_id: str
+    :rtype: str
+    """
     """Draw rectangles representing exons"""
     dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
     if len(exons) == 0:
@@ -100,8 +137,27 @@ def draw_exons(exons, transcript_id):
     return dwg.tostring()
 
 
-def draw_exons_real(exons, transcript_id, start_end_info = None, draw_line_numbers = True,exons_color = 'blue'):
-    """Draw rectangles representing exons real positions"""
+def draw_exons_real(
+        exons: list,
+        transcript_id: str,
+        start_end_info: tuple = None,
+        draw_line_numbers: bool = True,
+        exons_color: str = 'blue'
+        ) -> str:
+    """draw exons genomic location on a line
+
+    :param exons:
+    :type exons: list
+    :param transcript_id:
+    :type transcript_id: str
+    :param start_end_info:
+    :type start_end_info: tuple
+    :param draw_line_numbers:
+    :type draw_line_numbers: bool
+    :param exons_color:
+    :type exons_color: str
+    :rtype str:
+    """
     # draw line
     # on the line draw rectangles representing exons with introns spaces between them
     if len(exons) == 0:
@@ -136,7 +192,27 @@ def draw_domains(domains, variant_index):
     return dwg.tostring()
 
 
-def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, color = 'blue'):
+def create_exon_rect_real_pos(
+        dwg: svgwrite.Drawing,
+        exon: dict,
+        transcript_start: int,
+        transcript_end: int,
+        color: str = 'blue'
+        ) -> svgwrite.container.Group:
+    """create_exon_rect_real_pos
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param exon:
+    :type exon: dict
+    :param transcript_start:
+    :type transcript_start: int
+    :param transcript_end:
+    :type transcript_end: int
+    :param color:
+    :type color: str
+    :rtype: svgwrite.container.Group
+    """
     start = exon['real_start']
     normalized_start = (utils.clamp_value(start, transcript_start, transcript_end) * 100) + EXON_START_X
     end  = exon['real_end']
@@ -159,7 +235,14 @@ def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, color
     return rect_tooltip_group
 
 
-def add_tooltip(dwg: svgwrite.Drawing, rect_insert: tuple, rect_size: tuple, tooltip_data: dict) -> svgwrite.container.Group:
+def add_tooltip(
+        dwg: svgwrite.Drawing,
+        rect_insert: tuple,
+        rect_size: tuple,
+        tooltip_data: dict,
+        background_color: str = None,
+        text_color: str = None
+        ) -> svgwrite.container.Group:
     """add_tooltip
 
     :param dwg:
@@ -170,17 +253,28 @@ def add_tooltip(dwg: svgwrite.Drawing, rect_insert: tuple, rect_size: tuple, too
     :type rect_size: tuple
     :param tooltip_data:
     :type tooltip_data: dict
+    :param background_color:
+    :type background_color: str
+    :param text_color:
+    :type text_color: str
     :rtype: svgwrite.container.Group
     """
+
     tooltip_group = dwg.g(class_="special_rect_tooltip")
     tooltip_size = (TOOLTIP_SIZE_X,TOOLTIP_SIZE_Y)
     tooltip_insert = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), rect_insert[1] - TOOLTIP_SIZE_Y
-    tooltip_group.add(dwg.rect(
+    background_rect = dwg.rect(
         insert = to_size(tooltip_insert, mm),
         size = to_size(tooltip_size, mm),
         rx = 2*mm,
         ry = 2*mm,
-    ))
+    )
+
+    if background_color:
+        background_rect.fill(background_color, 0.5)
+
+    tooltip_group.add(background_rect)
+
     text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-1),mm), text="")
     tooltip_data = extract_tooltip(tooltip_data)
     num_lines = len(tooltip_data)
@@ -197,16 +291,36 @@ def add_tooltip(dwg: svgwrite.Drawing, rect_insert: tuple, rect_size: tuple, too
     return tooltip_group
 
 
-def extract_tooltip(exon: dict) -> dict:
-    params = ['index', 'length', 'real_start', 'real_end', 'relative_start', 'relative_end']
-    name_dict= {'real_start':'genomic_start', 'real_end':'genomic_end'}
+def extract_tooltip(exon: dict, params: list=None, name_dict: dict=None ) -> dict:
+    """extract_tooltip
+
+    :param exon:
+    :type exon: dict
+    :param params:
+    :type params: list
+    :param name_dict:
+    :type name_dict: dict
+    :rtype: dict
+    """
+    if not params:
+        params = ['index', 'length', 'real_start', 'real_end', 'relative_start', 'relative_end']
+    if not name_dict:
+        name_dict= {'real_start':'genomic_start', 'real_end':'genomic_end' }
     extracted_params= {switch_names(key, name_dict):value for key,value in exon.items() if key in params}
     return extracted_params
 
+
 def switch_names(key: str, name_dict: dict) -> str:
-    if key in name_dict:
-        return name_dict[key].replace('_', ' ')
-    return key.replace('_', ' ')
+    """switch_names
+
+    :param key:
+    :type key: str
+    :param name_dict:
+    :type name_dict: dict
+    :rtype: str
+    """
+    return name_dict.get(key, key).replace('_', ' ')
+
 
 def create_exon_rect(dwg: svgwrite.Drawing, exon: dict, squashed_start: int, squashed_end: int) -> svgwrite.shapes.Rect:
     """create_exon_rect
