@@ -176,8 +176,8 @@ def draw_exons_real(
     for exon in exons:
         exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, exons_color)
         dwg.add(exon_tooltip_group)
-    text = add_text(dwg, transcript_id)
-    dwg.add(text)
+    text_group = add_text(dwg, transcript_id, exons_color)
+    dwg.add(text_group)
     return dwg.tostring()
 
 
@@ -228,7 +228,7 @@ def create_exon_rect_real_pos(
         opacity = 0.5
     )
     #rect.set_desc(title="im a title", desc="im a desc")
-    tooltip = add_tooltip(dwg, rect_insert, rect_size, exon)
+    tooltip = add_tooltip(dwg, rect_insert, rect_size, exon, color)
     rect_tooltip_group = dwg.g(id_='exon')
     rect_tooltip_group.add(tooltip)
     rect_tooltip_group.add(rect)
@@ -241,7 +241,8 @@ def add_tooltip(
         rect_size: tuple,
         tooltip_data: dict,
         background_color: str = None,
-        text_color: str = None
+        text_color: str = None,
+        params: list = None,
         ) -> svgwrite.container.Group:
     """add_tooltip
 
@@ -257,26 +258,30 @@ def add_tooltip(
     :type background_color: str
     :param text_color:
     :type text_color: str
+    :param params:
+    :type params: list
     :rtype: svgwrite.container.Group
     """
 
     tooltip_group = dwg.g(class_="special_rect_tooltip")
     tooltip_size = (TOOLTIP_SIZE_X,TOOLTIP_SIZE_Y)
-    tooltip_insert = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), rect_insert[1] - TOOLTIP_SIZE_Y
+    tooltip_insert_x = min(max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), DRAWING_SIZE_X - tooltip_size[0])
+    tooltip_insert = tooltip_insert_x, rect_insert[1] - TOOLTIP_SIZE_Y
+    #TODO USE JAVASCRIPT TO SOLVE BOUNDING PROBLEM - east
+    #OR THE DAMN <USE> THING
     background_rect = dwg.rect(
         insert = to_size(tooltip_insert, mm),
         size = to_size(tooltip_size, mm),
         rx = 2*mm,
         ry = 2*mm,
     )
-
     if background_color:
-        background_rect.fill(background_color, 0.5)
+        background_rect.fill(background_color, opacity = 0.5)
 
     tooltip_group.add(background_rect)
 
     text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-1),mm), text="")
-    tooltip_data = extract_tooltip(tooltip_data)
+    tooltip_data = extract_tooltip(tooltip_data, params)
     num_lines = len(tooltip_data)
     for index, (key, value) in enumerate(tooltip_data.items()):
         line = f'{key}: {value}'
@@ -441,14 +446,37 @@ def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
     new_tup = tuple([t*size for t in tup])
     return new_tup
 
-def add_text(dwg: svgwrite.Drawing, t: str) -> svgwrite.text.Text:
+def add_text(dwg: svgwrite.Drawing, t: str, background_color: str = 'teal') -> svgwrite.container.Group:
     """add_text
 
     :param dwg:
     :type dwg: svgwrite.Drawing
     :param t:
     :type t: str
-    :rtype: svgwrite.text.Text
+    :param background_color:
+    :type background_color: str
+    :rtype: svgwrite.container.Group
     """
+    transcript_name_group = dwg.g(class_ = 'transcript_id_rect')
+    rect_insert = (TEXT_X, TEXT_Y - EXON_HEIGHT)
+    rect_size = (DRAWING_SIZE_X - TEXT_X, EXON_HEIGHT*2)
+    rect = dwg.rect(
+            insert=to_size(rect_insert,mm),
+            size = to_size(rect_size, mm),
+            fill = background_color,
+            opacity = 0.2
+    )
     text = dwg.text(insert=(TEXT_X*mm, TEXT_Y*mm), text=t)
-    return text
+    transcript_name_group.add(rect)
+    transcript_name_group.add(text)
+    tooltip_group = add_tooltip(
+            dwg,
+            rect_insert,
+            rect_size,
+            {'t_id':t},
+            background_color,
+            params=['t_id']
+    )
+
+    transcript_name_group.add(tooltip_group)
+    return transcript_name_group

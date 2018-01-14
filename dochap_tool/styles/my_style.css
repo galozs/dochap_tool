@@ -1,3 +1,4 @@
+
 #exon .special_rect_tooltip {
     visibility: hidden;
 }
@@ -16,6 +17,23 @@
     font-family: sans-serif;
 }
 .special_rect_tooltip rect {
-    fill: teal;
+    //fill: teal;
     stroke: blue;
 }
+
+.transcript_id_rect .special_rect_tooltip{
+    visibility: hidden;
+}
+
+.transcript_id_rect:hover .special_rect_tooltip {
+    visibility: visible;
+}
+
+line{
+    opacity:0.5;
+}
+
+line:hover{
+    opacity:1.0;
+}
+
