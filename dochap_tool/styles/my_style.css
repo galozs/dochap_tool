@@ -1,0 +1,18 @@
+#exon .special_rect_tooltip {                                              
+    visibility: hidden;
+}   
+
+#exon:hover .special_rect_tooltip { 
+    visibility: visible;
+}   
+
+.special_rect_tooltip text {
+    fill: black;
+    font-size: 12px;
+    font-family: sans-serif;
+}   
+.special_rect_tooltip rect {
+    fill: yellow;
+    stroke: blue;
+}   
+

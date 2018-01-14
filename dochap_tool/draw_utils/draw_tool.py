@@ -1,8 +1,25 @@
 import svgwrite
+import json
 from dochap_tool.common_utils import utils
 from svgwrite import cm, mm
 
-colors = ['grey', 'black', 'orange', 'teal','green','blue','red','brown','pink','yellow']
+colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
+
+TEXT_X = 121
+TEXT_Y = 25
+DRAWING_SIZE_X = 140
+DRAWING_SIZE_Y = 30
+EXON_START_X = 10
+EXON_END_X = 110
+EXON_Y = 22
+LINE_START_X = 0
+LINE_END_X = 120
+LINE_Y = 24.5
+EXON_HEIGHT = 5
+LINE_ROWS_HALF_HEIGHT = 2
+TOOLTIP_SIZE_X = 40
+TOOLTIP_SIZE_Y = 20
+
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -33,7 +50,7 @@ def draw_combination(user_transcripts, user_color, db_transcripts, db_color):
     start_end_info = (min(min_starts), max(max_ends))
     user_svgs = draw_transcripts(user_transcripts, user_color, start_end_info, False)
     db_svgs = draw_transcripts(db_transcripts, db_color, start_end_info, False)
-    dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
     add_line(dwg, start_end_info[0], start_end_info[1], True, True)
     return user_svgs, db_svgs, dwg.tostring()
 
@@ -70,7 +87,7 @@ def draw_transcripts(transcripts, exons_color = 'blue', start_end_info = None, n
 
 def draw_exons(exons, transcript_id):
     """Draw rectangles representing exons"""
-    dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
     if len(exons) == 0:
         return None
     squashed_start = exons[0]['relative_start']
@@ -89,7 +106,8 @@ def draw_exons_real(exons, transcript_id, start_end_info = None, draw_line_numbe
     # on the line draw rectangles representing exons with introns spaces between them
     if len(exons) == 0:
         return None
-    dwg = svgwrite.Drawing(size=(12*cm, 10*mm), profile='tiny', debug=True)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
+    dwg.add_stylesheet('./dochap_tool/styles/my_style.css', title='interactive style')
 
     if not start_end_info:
         transcript_start = exons[0]['real_start']
@@ -99,8 +117,8 @@ def draw_exons_real(exons, transcript_id, start_end_info = None, draw_line_numbe
         transcript_end = start_end_info[1]
 
     for exon in exons:
-        rect = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, exons_color)
-        dwg.add(rect)
+        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, exons_color)
+        dwg.add(exon_tooltip_group)
     add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
     text = add_text(dwg, transcript_id)
     dwg.add(text)
@@ -118,23 +136,70 @@ def draw_domains(domains, variant_index):
     return dwg.tostring()
 
 
-def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, color = 'blue', tooltip_data = 'Im a tooltip'):
+def create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, color = 'blue'):
     start = exon['real_start']
-    normalized_start = utils.clamp_value(start, transcript_start, transcript_end) * 100
+    normalized_start = (utils.clamp_value(start, transcript_start, transcript_end) * 100) + EXON_START_X
     end  = exon['real_end']
-    normalized_end = utils.clamp_value(end, transcript_start, transcript_end) * 100
+    normalized_end = (utils.clamp_value(end, transcript_start, transcript_end) * 100) + EXON_START_X
     normalized_length = abs(normalized_end - normalized_start)
     #c = colors[exon['index'] % len(colors)]
+    rect_insert = (normalized_start ,EXON_Y)
+    rect_size = (normalized_length ,EXON_HEIGHT)
     rect = dwg.rect(
-        insert=(normalized_start * mm, 5 * mm),
-        size=(normalized_length * mm, 5 * mm),
-        fill=color,
-        opacity=0.5
+        insert = to_size(rect_insert, mm),
+        size = to_size(rect_size, mm),
+        fill = color,
+        opacity = 0.5
     )
-    return rect
+    #rect.set_desc(title="im a title", desc="im a desc")
+    tooltip = add_tooltip(dwg, rect_insert, rect_size, exon)
+    rect_tooltip_group = dwg.g(id_='exon')
+    rect_tooltip_group.add(tooltip)
+    rect_tooltip_group.add(rect)
+    return rect_tooltip_group
 
 
-def create_exon_rect(dwg, exon, squashed_start, squashed_end):
+def add_tooltip(dwg: svgwrite.Drawing, rect_insert: tuple, rect_size: tuple, tooltip_data: dict) -> svgwrite.container.Group:
+    """add_tooltip
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param rect_insert:
+    :type rect_insert: tuple
+    :param rect_size:
+    :type rect_size: tuple
+    :param tooltip_data:
+    :type tooltip_data: dict
+    :rtype: svgwrite.container.Group
+    """
+    tooltip_group = dwg.g(class_="special_rect_tooltip")
+    #tooltip_group.translate(tx=rect_insert[0], ty=rect_insert[1])
+    tooltip_insert = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), rect_insert[1] - TOOLTIP_SIZE_Y
+    tooltip_size = (TOOLTIP_SIZE_X,TOOLTIP_SIZE_Y)
+    tooltip_group.add(dwg.rect(insert = to_size(tooltip_insert,mm), size = to_size(tooltip_size, mm)))
+    tooltip_text = json.dumps(tooltip_data,indent=4)
+    text = dwg.text(insert = to_size(tooltip_insert,mm), text="")
+    num_lines = len(tooltip_data)
+    for index, (key, value) in enumerate(tooltip_data.items()):
+        line = f'{key}: {value}'
+        height = tooltip_size[1]/num_lines
+        text.add(svgwrite.text.TSpan(text = line,x =[tooltip_insert[0]*mm],  dy = [height*mm]))
+    tooltip_group.add(text)
+    return tooltip_group
+
+def create_exon_rect(dwg: svgwrite.Drawing, exon: dict, squashed_start: int, squashed_end: int) -> svgwrite.shapes.Rect:
+    """create_exon_rect
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param exon:
+    :type exon: dict
+    :param squashed_start:
+    :type squashed_start: int
+    :param squashed_end:
+    :type squashed_end: int
+    :rtype: svgwrite.shapes.Rect
+    """
     start = exon['relative_start']
     normalized_start = utils.clamp_value(start, squashed_start, squashed_end) * 100
     end = exon['relative_end']
@@ -150,7 +215,15 @@ def create_exon_rect(dwg, exon, squashed_start, squashed_end):
     return rect
 
 
-def create_domain_rect(dwg, domain):
+def create_domain_rect(dwg: svgwrite.Drawing, domain: dict) -> svgwrite.shapes.Rect:
+    """create_domain_rect
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param domain:
+    :type domain: dict
+    :rtype: svgwrite.shapes.Rect
+    """
     start = domain['start']
     length = domain['end'] - domain['start']
     # TODO different colors
@@ -164,26 +237,54 @@ def create_domain_rect(dwg, domain):
     return rect
 
 
-def add_line(dwg, start_value, end_value, draw_line_numbers = True, draw_line_rows = False):
-    start = [1, 7.5]
-    end = [119, 7.5]
-    normalized_start_position = (start[0]*mm, start[1]*mm)
-    normalized_end_position = (end[0]*mm, end[1]*mm)
+def add_line(
+        dwg: svgwrite.Drawing,
+        start_value: int,
+        end_value: int,
+        draw_line_numbers: bool = True,
+        draw_line_rows: bool = False
+        ) -> None:
+    """add_line
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param start_value:
+    :type start_value: int
+    :param end_value:
+    :type end_value: int
+    :param draw_line_numbers :True:
+    :type draw_line_numbers: bool
+    :param draw_line_rows :False:
+    :type draw_line_rows: bool
+    :rtype: svgwrite.shapes.Line
+    """
+    start = [LINE_START_X, LINE_Y]
+    end = [LINE_END_X, LINE_Y]
+    sign_start = [EXON_START_X, LINE_Y]
+    sign_end = [EXON_END_X, LINE_Y]
+    normalized_start_position = to_size(start,mm)
+    normalized_end_position = to_size(end, mm)
     line = dwg.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
     if draw_line_numbers:
-        dwg.add(dwg.text(insert=(0*mm, 3*mm), text=str(start_value)))
-        dwg.add(dwg.text(insert=(100*mm, 3*mm), text=str(end_value)))
+        dwg.add(dwg.text(
+            insert=to_size((sign_start[0] - 10, LINE_Y - 3), mm),
+            text=str(start_value)
+        ))
+        dwg.add(dwg.text(
+            insert=to_size((sign_end[0] - 10, LINE_Y - 3),mm),
+            text=str(end_value)
+        ))
     if draw_line_rows:
-        start_line_start = start[:]
-        start_line_end = start[:]
-        start_line_start[1] -= 3
-        start_line_end[1] += 3
+        start_line_start = sign_start[:]
+        start_line_end = sign_start[:]
+        start_line_start[1] -= LINE_ROWS_HALF_HEIGHT
+        start_line_end[1] += LINE_ROWS_HALF_HEIGHT
         start_line_start = to_size(start_line_start, mm)
         start_line_end = to_size(start_line_end, mm)
-        end_line_start = end[:]
-        end_line_end = end[:]
-        end_line_start[1] -= 3
-        end_line_end[1] += 3
+        end_line_start = sign_end[:]
+        end_line_end = sign_end[:]
+        end_line_start[1] -= LINE_ROWS_HALF_HEIGHT
+        end_line_end[1] += LINE_ROWS_HALF_HEIGHT
         end_line_start = to_size(end_line_start, mm)
         end_line_end = to_size(end_line_end, mm)
         # add the lines
@@ -193,10 +294,26 @@ def add_line(dwg, start_value, end_value, draw_line_numbers = True, draw_line_ro
     return None
 
 
-def to_size(tup, size):
-    new_tup = (t*size for t in tup)
+def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
+    """to_size
+
+    :param tup:
+    :type tup: tuple
+    :param size:
+    :type size: svgwrite.Unit
+    :rtype: tuple
+    """
+    new_tup = tuple([t*size for t in tup])
     return new_tup
 
-def add_text(dwg, t):
-    text = dwg.text(insert=(30*mm, 4.5*mm), text=t)
+def add_text(dwg: svgwrite.Drawing, t: str) -> svgwrite.text.Text:
+    """add_text
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param t:
+    :type t: str
+    :rtype: svgwrite.text.Text
+    """
+    text = dwg.text(insert=(TEXT_X*mm, TEXT_Y*mm), text=t)
     return text
