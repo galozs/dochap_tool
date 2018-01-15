@@ -1,24 +1,19 @@
-
-#exon .special_rect_tooltip {
+.exon .special_rect_tooltip {
     visibility: hidden;
 }
 
-#exon:hover .special_rect_tooltip {
+.exon:hover .special_rect_tooltip {
     visibility: visible;
 }
 
-#exon:hover rect{
-    opacity: 1.0
+rect:hover{
+    opacity: 0.7
 }
 
 .special_rect_tooltip text {
     fill: yellow;
-    font-size: 11px;
+    font-size: 18px;
     font-family: sans-serif;
-}
-.special_rect_tooltip rect {
-    //fill: teal;
-    stroke: blue;
 }
 
 .transcript_id_rect .special_rect_tooltip{
@@ -29,6 +24,14 @@
     visibility: visible;
 }
 
+.match_status_group .special_rect_tooltip{
+    visibility: hidden;
+}
+
+.match_status_group:hover .special_rect_tooltip {
+    visibility: visible;
+}
+
 line{
     opacity:0.5;
 }
@@ -36,4 +39,3 @@ line{
 line:hover{
     opacity:1.0;
 }
-

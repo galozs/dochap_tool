@@ -280,6 +280,44 @@ def get_domain_intersection_in_exon(domain, exon):
     return None
 
 
+def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> dict:
+    """compare_user_db_transcripts
+    Get dict of the form {user_t_id : matching_db_t_id}
+
+    :param user_transcripts:
+    :type user_transcripts: dict
+    :param db_transcripts:
+    :type db_transcripts: dict
+    :rtype: dict
+    """
+    matching_dict = {}
+    for t_id, user_exons in user_transcripts.items():
+        for db_t_id, db_exons ,in db_transcripts.items():
+            if compare_every_exon(user_exons, db_exons):
+                matching_dict[t_id] = db_t_id
+                break
+    return matching_dict
+
+def compare_every_exon(user_exons: list, db_exons: list) -> bool:
+    """compare_every_exon
+    If exons match in length and count, return Treu, otherwise return False
+
+    :param user_exons:
+    :type user_exons: list
+    :param db_exons:
+    :type db_exons: list
+    :rtype: bool
+    """
+    if len(user_exons) != len(db_exons):
+        return False
+
+    for i in range(len(user_exons)):
+        if user_exons[i]['length'] - db_exons[i]['length'] > 1:
+            return False
+    return True
+
+
+
 def compare_intersections(intersection, candidates):
     """
     sort a list of intersection candidates in comparison to given intersection

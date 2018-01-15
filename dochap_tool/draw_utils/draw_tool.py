@@ -1,11 +1,16 @@
 import svgwrite
 import json
 from dochap_tool.common_utils import utils
+from dochap_tool.compare_utils import compare_exons
 from svgwrite import cm, mm
 
 colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
 
-TEXT_X = 121
+MATCH_X = 5
+MATCH_Y = 5
+MATCH_SIZE_X = 15
+MATCH_SIZE_Y = 10
+TEXT_X = 115
 TEXT_Y = 35
 DRAWING_SIZE_X = 140
 DRAWING_SIZE_Y = 40
@@ -13,13 +18,12 @@ EXON_START_X = 10
 EXON_END_X = 110
 EXON_Y = 32
 LINE_START_X = 0
-LINE_END_X = 120
+LINE_END_X = 115
 LINE_Y = 34.5
 EXON_HEIGHT = 5
 LINE_ROWS_HALF_HEIGHT = 2
 TOOLTIP_SIZE_X = 40
 TOOLTIP_SIZE_Y = 30
-
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -37,6 +41,7 @@ def draw_test(w, h):
 
 
 def draw_combination(
+        gene_name: str,
         user_transcripts: dict,
         user_color: str,
         db_transcripts: dict,
@@ -54,6 +59,7 @@ def draw_combination(
     :type db_color: str
     :rtype: dict, dict, str
     """
+    matching_dict = compare_exons.compare_user_db_transcripts(user_transcripts, db_transcripts)
     transcripts_lists = (user_transcripts, db_transcripts)
     min_starts = []
     max_ends = []
@@ -65,10 +71,11 @@ def draw_combination(
         min_starts.append(min(starts))
         max_ends.append(max(ends))
     start_end_info = (min(min_starts), max(max_ends))
-    user_svgs = draw_transcripts(user_transcripts, user_color, start_end_info, False)
+    user_svgs = draw_transcripts(user_transcripts, user_color, start_end_info, False, matching_dict)
     db_svgs = draw_transcripts(db_transcripts, db_color, start_end_info, False)
     dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
     add_line(dwg, start_end_info[0], start_end_info[1], True, True)
+    dwg.add(add_text(dwg, '', tooltip_data = {'gene symbol':gene_name}))
     return user_svgs, db_svgs, dwg.tostring()
 
 
@@ -77,7 +84,8 @@ def draw_transcripts(
         transcripts: dict,
         exons_color:str = 'blue',
         start_end_info: tuple = None,
-        numbered_line: bool = True
+        numbered_line: bool = True,
+        matching_dict: dict = None,
         ) -> list:
     """draw transcripts
 
@@ -89,6 +97,8 @@ def draw_transcripts(
     :type start_end_info: tuple
     :param numbered_line:
     :type numbered_line: bool
+    :param matching_dict:
+    :type matching_dict: dict
     :rtype: list
     """
     if len(transcripts) == 0:
@@ -107,7 +117,7 @@ def draw_transcripts(
     show_line_numbers = numbered_line
     for t_id, exons in transcripts.items():
         start_end_info = (min_start, max_end)
-        svg = draw_exons_real(exons, t_id, start_end_info, show_line_numbers, exons_color)
+        svg = draw_exons_real(exons, t_id, start_end_info, show_line_numbers, exons_color, matching_dict)
         svgs[t_id] = svg
         show_line_numbers = False
     return svgs
@@ -125,6 +135,8 @@ def draw_exons(exons: list, transcript_id: str) -> str:
     """
     """Draw rectangles representing exons"""
     dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
+
+
     if len(exons) == 0:
         return None
     squashed_start = exons[0]['relative_start']
@@ -132,7 +144,7 @@ def draw_exons(exons: list, transcript_id: str) -> str:
     for exon in exons:
         rect = create_exon_rect(dwg, exon, squashed_start, squashed_end)
         dwg.add(rect)
-    text = add_text(dwg, transcript_id)
+    text = add_text(dwg, transcript_id, tooltip_data= {'Transcript id':transcript_id})
     dwg.add(text)
     return dwg.tostring()
 
@@ -142,7 +154,8 @@ def draw_exons_real(
         transcript_id: str,
         start_end_info: tuple = None,
         draw_line_numbers: bool = True,
-        exons_color: str = 'blue'
+        exons_color: str = 'blue',
+        matching_dict: dict = {},
         ) -> str:
     """draw exons genomic location on a line
 
@@ -156,14 +169,15 @@ def draw_exons_real(
     :type draw_line_numbers: bool
     :param exons_color:
     :type exons_color: str
+    :param matching_dict:
+    :type matching_dict: dict
     :rtype str:
     """
-    # draw line
-    # on the line draw rectangles representing exons with introns spaces between them
-    if len(exons) == 0:
-        return None
     dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
-    dwg.add_stylesheet('./dochap_tool/styles/my_style.css', title='interactive style')
+    if len(exons) == 0:
+        return dwg.tostring()
+    # TODO probably not working right now
+    #dwg.add_stylesheet('./dochap_tool/styles/my_style.css')
 
     if not start_end_info:
         transcript_start = exons[0]['real_start']
@@ -174,10 +188,16 @@ def draw_exons_real(
 
     add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
     for exon in exons:
-        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, exons_color)
+        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end,len(exons), exons_color)
         dwg.add(exon_tooltip_group)
-    text_group = add_text(dwg, transcript_id, exons_color)
+        text_group = add_text(dwg, transcript_id, exons_color, tooltip_data={'Transcript id': transcript_id} )
     dwg.add(text_group)
+    if matching_dict:
+        matching_text = 'Match exists' if transcript_id in matching_dict else 'No Match'
+        color = 'green' if transcript_id in matching_dict else 'red'
+        tooltip_data = {'Match':matching_dict.get(transcript_id,'no match')}
+        match_group = add_matching_status(dwg, matching_text, color, tooltip_data)
+        dwg.add(match_group)
     return dwg.tostring()
 
 
@@ -187,7 +207,7 @@ def draw_domains(domains, variant_index):
     for domain in domains:
         rect = create_domain_rect(dwg, domain)
         dwg.add(rect)
-    text = add_text(dwg, variant_index)
+    text = add_text(dwg, variant_index, tooltip_data={'domain variant': variant_index})
     dwg.add(text)
     return dwg.tostring()
 
@@ -197,7 +217,8 @@ def create_exon_rect_real_pos(
         exon: dict,
         transcript_start: int,
         transcript_end: int,
-        color: str = 'blue'
+        num_exons:int,
+        color: str = 'blue',
         ) -> svgwrite.container.Group:
     """create_exon_rect_real_pos
 
@@ -228,8 +249,12 @@ def create_exon_rect_real_pos(
         opacity = 0.5
     )
     #rect.set_desc(title="im a title", desc="im a desc")
-    tooltip = add_tooltip(dwg, rect_insert, rect_size, exon, color)
-    rect_tooltip_group = dwg.g(id_='exon')
+    tooltip_data = {}
+    tooltip_data['Exon number'] = f"{exon['index']+1}/{num_exons}"
+    tooltip_data['Genomic location'] = f"{exon['real_start']} - {exon['real_end']}"
+    tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
+    tooltip = add_tooltip(dwg, rect_insert, rect_size, tooltip_data, background_color='#d3d3d3', text_color='#00008b', border_color=color)
+    rect_tooltip_group = dwg.g(class_='exon')
     rect_tooltip_group.add(tooltip)
     rect_tooltip_group.add(rect)
     return rect_tooltip_group
@@ -242,7 +267,9 @@ def add_tooltip(
         tooltip_data: dict,
         background_color: str = None,
         text_color: str = None,
+        border_color: str = None,
         params: list = None,
+        under: bool = False
         ) -> svgwrite.container.Group:
     """add_tooltip
 
@@ -260,27 +287,27 @@ def add_tooltip(
     :type text_color: str
     :param params:
     :type params: list
+    :param under:
+    :type under: bool
     :rtype: svgwrite.container.Group
     """
-
     tooltip_group = dwg.g(class_="special_rect_tooltip")
-    tooltip_size = (TOOLTIP_SIZE_X,TOOLTIP_SIZE_Y)
-    tooltip_insert_x = min(max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0), DRAWING_SIZE_X - tooltip_size[0])
-    tooltip_insert = tooltip_insert_x, rect_insert[1] - TOOLTIP_SIZE_Y
-    #TODO USE JAVASCRIPT TO SOLVE BOUNDING PROBLEM - east
-    #OR THE DAMN <USE> THING
+    tooltip_size = (TOOLTIP_SIZE_X, TOOLTIP_SIZE_Y if not under else TOOLTIP_SIZE_Y/2)
+    tooltip_insert_x = max(rect_insert[0] + 0.5*rect_size[0] - (TOOLTIP_SIZE_X/2), 0)
+    tooltip_insert_x = min(tooltip_insert_x, DRAWING_SIZE_X - 1.3*tooltip_size[0])
+    tooltip_insert_y = rect_insert[1] if under else rect_insert[1] - TOOLTIP_SIZE_Y
+    tooltip_insert = tooltip_insert_x, tooltip_insert_y
     background_rect = dwg.rect(
         insert = to_size(tooltip_insert, mm),
         size = to_size(tooltip_size, mm),
         rx = 2*mm,
         ry = 2*mm,
+        fill=background_color,
+        opacity = 0.5,
+        stroke=border_color
     )
-    if background_color:
-        background_rect.fill(background_color, opacity = 0.5)
-
     tooltip_group.add(background_rect)
-
-    text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-1),mm), text="")
+    text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-2),mm), text="")
     tooltip_data = extract_tooltip(tooltip_data, params)
     num_lines = len(tooltip_data)
     for index, (key, value) in enumerate(tooltip_data.items()):
@@ -290,17 +317,18 @@ def add_tooltip(
             text = line,
             x = [(tooltip_insert[0]+1)*mm],
             dy = [height*mm],
-            text_anchor="start"
+            text_anchor="start",
+            style=f"fill:{text_color};"
         ))
     tooltip_group.add(text)
     return tooltip_group
 
 
-def extract_tooltip(exon: dict, params: list=None, name_dict: dict=None ) -> dict:
+def extract_tooltip(tooltip_data: dict, params: list=None, name_dict: dict=None ) -> dict:
     """extract_tooltip
 
-    :param exon:
-    :type exon: dict
+    :param tooltip_data:
+    :type tooltip_data: dict
     :param params:
     :type params: list
     :param name_dict:
@@ -308,10 +336,10 @@ def extract_tooltip(exon: dict, params: list=None, name_dict: dict=None ) -> dic
     :rtype: dict
     """
     if not params:
-        params = ['index', 'length', 'real_start', 'real_end', 'relative_start', 'relative_end']
+        params = tooltip_data.keys()
     if not name_dict:
         name_dict= {'real_start':'genomic_start', 'real_end':'genomic_end' }
-    extracted_params= {switch_names(key, name_dict):value for key,value in exon.items() if key in params}
+    extracted_params= {switch_names(key, name_dict):value for key,value in tooltip_data.items() if key in params}
     return extracted_params
 
 
@@ -446,15 +474,20 @@ def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
     new_tup = tuple([t*size for t in tup])
     return new_tup
 
-def add_text(dwg: svgwrite.Drawing, t: str, background_color: str = 'teal') -> svgwrite.container.Group:
+def add_text(
+        dwg: svgwrite.Drawing,
+        text_string: str,
+        color: str = 'teal',
+        tooltip_data:dict = None
+        ) -> svgwrite.container.Group:
     """add_text
 
     :param dwg:
     :type dwg: svgwrite.Drawing
-    :param t:
-    :type t: str
-    :param background_color:
-    :type background_color: str
+    :param text_string:
+    :type text_string: str
+    :param color:
+    :type color: str
     :rtype: svgwrite.container.Group
     """
     transcript_name_group = dwg.g(class_ = 'transcript_id_rect')
@@ -463,20 +496,65 @@ def add_text(dwg: svgwrite.Drawing, t: str, background_color: str = 'teal') -> s
     rect = dwg.rect(
             insert=to_size(rect_insert,mm),
             size = to_size(rect_size, mm),
-            fill = background_color,
+            fill = color,
             opacity = 0.2
     )
-    text = dwg.text(insert=(TEXT_X*mm, TEXT_Y*mm), text=t)
-    transcript_name_group.add(rect)
+    text = dwg.text(insert=(TEXT_X*mm, TEXT_Y*mm), text=text_string)
     transcript_name_group.add(text)
+    transcript_name_group.add(rect)
     tooltip_group = add_tooltip(
             dwg,
             rect_insert,
             rect_size,
-            {'t_id':t},
-            background_color,
-            params=['t_id']
+            tooltip_data,
+            background_color='#d3d3d3',
+            text_color='#00008b',
+            border_color=color
     )
 
     transcript_name_group.add(tooltip_group)
     return transcript_name_group
+
+def add_matching_status(
+        dwg: svgwrite.Drawing,
+        text_string: str,
+        color: str = 'teal',
+        tooltip_data:dict = None,
+        ) -> svgwrite.container.Group:
+    """add_matching_status
+
+    :param dwg:
+    :type dwg: svgwrite.Drawing
+    :param text_string:
+    :type text_string: str
+    :param color:
+    :type color: str
+    :param tooltip_data:
+    :type tooltip_data: dict
+    :rtype: svgwrite.container.Group
+    """
+    match_status_group = dwg.g(class_ = 'match_status_group')
+    rect_insert = (MATCH_X, MATCH_Y)
+    rect_size = (MATCH_SIZE_X, MATCH_SIZE_Y)
+    rect = dwg.rect(
+            insert=to_size(rect_insert,mm),
+            size = to_size(rect_size, mm),
+            fill = color,
+            opacity = 0.2
+    )
+    text = dwg.text(insert=to_size(rect_insert,mm), text=text_string)
+    match_status_group.add(text)
+    match_status_group.add(rect)
+    tooltip_group = add_tooltip(
+            dwg,
+            rect_insert,
+            rect_size,
+            tooltip_data,
+            background_color='#d3d3d3',
+            text_color='#00008b',
+            border_color=color,
+            under = True
+    )
+
+    match_status_group.add(tooltip_group)
+    return match_status_group
