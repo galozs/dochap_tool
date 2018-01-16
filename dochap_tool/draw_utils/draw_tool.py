@@ -1,5 +1,4 @@
 import svgwrite
-import json
 from dochap_tool.common_utils import utils
 from dochap_tool.compare_utils import compare_exons
 from svgwrite import cm, mm
@@ -16,14 +15,15 @@ DRAWING_SIZE_X = 140
 DRAWING_SIZE_Y = 40
 EXON_START_X = 10
 EXON_END_X = 110
-EXON_Y = 32
+EXON_Y = 30
 LINE_START_X = 0
 LINE_END_X = 115
 LINE_Y = 34.5
-EXON_HEIGHT = 5
-LINE_ROWS_HALF_HEIGHT = 2
+EXON_HEIGHT = 8
+LINE_ARCHES_HALF_HEIGHT = 2
 TOOLTIP_SIZE_X = 40
 TOOLTIP_SIZE_Y = 30
+TEXT_X_OFFSET = 10
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -73,9 +73,12 @@ def draw_combination(
     start_end_info = (min(min_starts), max(max_ends))
     user_svgs = draw_transcripts(user_transcripts, user_color, start_end_info, False, matching_dict)
     db_svgs = draw_transcripts(db_transcripts, db_color, start_end_info, False)
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
-    add_line(dwg, start_end_info[0], start_end_info[1], True, True)
+    view_box_string = f'0 0 {DRAWING_SIZE_X} {DRAWING_SIZE_Y}'
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True) #,viewBox=view_box_string)
+    line_group = add_line(dwg, start_end_info[0], start_end_info[1], True, True, num_arches=0)
+    dwg.add(line_group)
     dwg.add(add_text(dwg, '', tooltip_data = {'gene symbol':gene_name}))
+    dwg.defs.add(dwg.script(content='fix_all();'))
     return user_svgs, db_svgs, dwg.tostring()
 
 
@@ -146,6 +149,7 @@ def draw_exons(exons: list, transcript_id: str) -> str:
         dwg.add(rect)
     text = add_text(dwg, transcript_id, tooltip_data= {'Transcript id':transcript_id})
     dwg.add(text)
+    dwg.defs.add(dwg.script(content='fix_all();'))
     return dwg.tostring()
 
 
@@ -173,11 +177,13 @@ def draw_exons_real(
     :type matching_dict: dict
     :rtype str:
     """
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
+    view_box_string = f'0 0 {DRAWING_SIZE_X} {DRAWING_SIZE_Y}'
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)#, viewBox = view_box_string)
     if len(exons) == 0:
         return dwg.tostring()
     # TODO probably not working right now
     #dwg.add_stylesheet('./dochap_tool/styles/my_style.css')
+    dwg.defs.add(dwg.script(content='fix_all();'))
 
     if not start_end_info:
         transcript_start = exons[0]['real_start']
@@ -186,7 +192,8 @@ def draw_exons_real(
         transcript_start = start_end_info[0]
         transcript_end = start_end_info[1]
 
-    add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
+    line_group = add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
+    dwg.add(line_group)
     for exon in exons:
         exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end,len(exons), exons_color)
         dwg.add(exon_tooltip_group)
@@ -253,6 +260,7 @@ def create_exon_rect_real_pos(
     tooltip_data['Exon number'] = f"{exon['index']+1}/{num_exons}"
     tooltip_data['Genomic location'] = f"{exon['real_start']} - {exon['real_end']}"
     tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
+    tooltip_data['Length'] = F"{exon['length']}"
     tooltip = add_tooltip(dwg, rect_insert, rect_size, tooltip_data, background_color='#d3d3d3', text_color='#00008b', border_color=color)
     rect_tooltip_group = dwg.g(class_='exon')
     rect_tooltip_group.add(tooltip)
@@ -303,7 +311,7 @@ def add_tooltip(
         rx = 2*mm,
         ry = 2*mm,
         fill=background_color,
-        opacity = 0.5,
+        opacity = 1.0,
         stroke=border_color
     )
     tooltip_group.add(background_rect)
@@ -410,8 +418,11 @@ def add_line(
         start_value: int,
         end_value: int,
         draw_line_numbers: bool = True,
-        draw_line_rows: bool = False
-        ) -> None:
+        draw_line_arches: bool = True,
+        num_arches: int = 10,
+        arch_stroke_color: str = 'black',
+        arch_tooltip: bool = False
+        ) -> svgwrite.container.Group:
     """add_line
 
     :param dwg:
@@ -422,9 +433,15 @@ def add_line(
     :type end_value: int
     :param draw_line_numbers :True:
     :type draw_line_numbers: bool
-    :param draw_line_rows :False:
-    :type draw_line_rows: bool
-    :rtype: svgwrite.shapes.Line
+    :param draw_line_arches :True:
+    :type draw_line_arches bool
+    :param num_arches :10:
+    :type num_arches: int
+    :param arch_stroke_color :red:
+    :type arch_stroke_color: str
+    :param arch_tooltip :False:
+    :type arch_tooltip: bool
+    :rtype: svgwrite.container.Group
     """
     start = [LINE_START_X, LINE_Y]
     end = [LINE_END_X, LINE_Y]
@@ -432,34 +449,35 @@ def add_line(
     sign_end = [EXON_END_X, LINE_Y]
     normalized_start_position = to_size(start,mm)
     normalized_end_position = to_size(end, mm)
-    line = dwg.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
+    line_group = dwg.g(class_ = 'line_group')
+    line_group.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
     if draw_line_numbers:
-        dwg.add(dwg.text(
-            insert=to_size((sign_start[0] - 10, LINE_Y - 3), mm),
+        line_group.add(dwg.text(
+            insert=to_size((sign_start[0] - TEXT_X_OFFSET, LINE_Y - 3), mm),
             text=str(start_value)
         ))
-        dwg.add(dwg.text(
-            insert=to_size((sign_end[0] - 10, LINE_Y - 3),mm),
+        line_group.add(dwg.text(
+            insert=to_size((sign_end[0] - TEXT_X_OFFSET, LINE_Y - 3),mm),
             text=str(end_value)
         ))
-    if draw_line_rows:
-        start_line_start = sign_start[:]
-        start_line_end = sign_start[:]
-        start_line_start[1] -= LINE_ROWS_HALF_HEIGHT
-        start_line_end[1] += LINE_ROWS_HALF_HEIGHT
-        start_line_start = to_size(start_line_start, mm)
-        start_line_end = to_size(start_line_end, mm)
-        end_line_start = sign_end[:]
-        end_line_end = sign_end[:]
-        end_line_start[1] -= LINE_ROWS_HALF_HEIGHT
-        end_line_end[1] += LINE_ROWS_HALF_HEIGHT
-        end_line_start = to_size(end_line_start, mm)
-        end_line_end = to_size(end_line_end, mm)
-        # add the lines
-        dwg.add(dwg.line(start=start_line_start, end=start_line_end,stroke="red"))
-        dwg.add(dwg.line(start=end_line_start, end=end_line_end,stroke="red"))
 
-    return None
+    num_arches = max(2, num_arches)
+    if draw_line_arches:
+        space_between_arches = (sign_end[0] - sign_start[0])/num_arches
+        for i in range(num_arches+1):
+            arch_position_x = sign_start[0] + (i * space_between_arches)
+            arch_position_y = LINE_Y
+            arch_start = (arch_position_x, arch_position_y - LINE_ARCHES_HALF_HEIGHT)
+            arch_end = (arch_position_x, arch_position_y + LINE_ARCHES_HALF_HEIGHT)
+            line_group.add(dwg.line(
+                start=to_size(arch_start, mm),
+                end=to_size(arch_end, mm),
+                stroke=arch_stroke_color
+            ))
+            if arch_tooltip:
+                pass
+    return line_group
+
 
 
 def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
@@ -555,6 +573,13 @@ def add_matching_status(
             border_color=color,
             under = True
     )
-
+    some_y = (LINE_Y - MATCH_SIZE_Y - MATCH_Y) / 2
+    middle_match_status = (MATCH_Y + MATCH_SIZE_Y )/ 2
+    px_to_mm = 3.779528
+    path_group = dwg.g(class_ = 'path_group', transform = f'scale({px_to_mm})')
+    path_string = f'M {LINE_START_X} {LINE_Y} L {LINE_START_X} {some_y} L {MATCH_X} {some_y} L {MATCH_X} {middle_match_status}'
+    path_group.add(dwg.path(d = path_string, opacity = 0.5, stroke = color))
+    # add path line from begining of the transcript line to the status match
+    match_status_group.add(path_group)
     match_status_group.add(tooltip_group)
     return match_status_group
