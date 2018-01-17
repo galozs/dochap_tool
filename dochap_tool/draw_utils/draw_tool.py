@@ -2,6 +2,7 @@ import svgwrite
 from dochap_tool.common_utils import utils
 from dochap_tool.compare_utils import compare_exons
 from svgwrite import cm, mm
+from typing import Union
 
 colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
 
@@ -22,8 +23,10 @@ LINE_Y = 34.5
 EXON_HEIGHT = 8
 LINE_ARCHES_HALF_HEIGHT = 2
 TOOLTIP_SIZE_X = 40
-TOOLTIP_SIZE_Y = 30
+TOOLTIP_SIZE_Y = 28
 TEXT_X_OFFSET = 10
+px_to_mm = 3.779528
+transform_px_to_mm = f'scale({px_to_mm})'
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -249,15 +252,43 @@ def create_exon_rect_real_pos(
     #c = colors[exon['index'] % len(colors)]
     rect_insert = (normalized_start ,EXON_Y)
     rect_size = (normalized_length ,EXON_HEIGHT)
-    rect = dwg.rect(
-        insert = to_size(rect_insert, mm),
-        size = to_size(rect_size, mm),
-        fill = color,
-        opacity = 0.5
-    )
-    #rect.set_desc(title="im a title", desc="im a desc")
+    # check if before cds start
+    exon_cds_intersection = utils.get_exon_cds_intersection(exon)
+    if exon_cds_intersection is not None:
+        normalized_intersection_x2 = (utils.clamp_value(exon_cds_intersection[1], transcript_start, transcript_end) * 100) + EXON_START_X
+
+        first_start = (rect_insert[0], LINE_Y - (rect_size[1]/6))
+        first_size = (normalized_intersection_x2 - rect_insert[0],rect_size[1] /3)
+        second_start = (first_start[0]+first_size[0], rect_insert[1])
+        second_size = (rect_insert[0]+rect_size[0] - second_start[0], rect_size[1])
+
+        exon_group = dwg.g(class_ = 'exon_group')
+        rect1 = dwg.rect(
+                insert = to_size(first_start, mm),
+                size = to_size(first_size, mm),
+                fill = color,
+                opacity = 0.5
+                )
+        rect2 = dwg.rect(
+                insert = to_size(second_start, mm),
+                size = to_size(second_size, mm),
+                fill = color,
+                opacity = 0.5
+                )
+        exon_group.add(rect1)
+        exon_group.add(rect2)
+        rect = exon_group
+    else:
+        rect = dwg.rect(
+            insert = to_size(rect_insert, mm),
+            size = to_size(rect_size, mm),
+            fill = color,
+            opacity = 0.5
+        )
     tooltip_data = {}
     tooltip_data['Exon number'] = f"{exon['index']+1}/{num_exons}"
+    if 'cds_start' in exon and 'cds_end' in exon:
+        tooltip_data['CDS location'] = f"{exon['cds_start']} - {exon['cds_end']}"
     tooltip_data['Genomic location'] = f"{exon['real_start']} - {exon['real_end']}"
     tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
     tooltip_data['Length'] = F"{exon['length']}"
@@ -575,8 +606,7 @@ def add_matching_status(
     )
     some_y = (LINE_Y - MATCH_SIZE_Y - MATCH_Y) / 2
     middle_match_status = (MATCH_Y + MATCH_SIZE_Y )/ 2
-    px_to_mm = 3.779528
-    path_group = dwg.g(class_ = 'path_group', transform = f'scale({px_to_mm})')
+    path_group = dwg.g(class_ = 'path_group', transform = transform_px_to_mm)
     path_string = f'M {LINE_START_X} {LINE_Y} L {LINE_START_X} {some_y} L {MATCH_X} {some_y} L {MATCH_X} {middle_match_status}'
     path_group.add(dwg.path(d = path_string, opacity = 0.5, stroke = color))
     # add path line from begining of the transcript line to the status match

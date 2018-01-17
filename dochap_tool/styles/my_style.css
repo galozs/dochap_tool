@@ -12,8 +12,12 @@ rect:hover{
 
 .special_rect_tooltip text {
     fill: yellow;
-    font-size: 18px;
+    font-size: 16px;
     font-family: sans-serif;
+}
+
+.special_rect_tooltip:hover rect{
+    opacity: 1.0
 }
 
 .transcript_id_rect .special_rect_tooltip{
@@ -22,6 +26,10 @@ rect:hover{
 
 .transcript_id_rect:hover .special_rect_tooltip {
     visibility: visible;
+}
+
+.exon_group:hover rect{
+    opacity: 1.0;
 }
 
 .match_status_group .special_rect_tooltip{
@@ -38,4 +46,13 @@ line{
 
 line:hover{
     opacity:1.0;
+}
+
+path:hover{
+    opacity:1.0;
+}
+
+path {
+  fill: none;
+  stroke-width: 1.5px;
 }

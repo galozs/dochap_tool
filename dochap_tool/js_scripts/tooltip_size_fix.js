@@ -26,7 +26,12 @@ function fix_status(){
 
 
 function fix_rect_and_text(groups, bbBox, minX, rectOffset){
+    var script_fixed_class_name = 'script_fixed';
     for (var i=0; i<groups.length; i++){
+        var should_fix = !groups[i].classList.contains(script_fixed_class_name);
+        if (!should_fix){
+            continue;
+        }
         var rect = groups[i].getElementsByTagName("rect")[0];
         var text = groups[i].getElementsByTagName("text")[0];
         var textBoundingBox = text.getBBox();
@@ -51,6 +56,7 @@ function fix_rect_and_text(groups, bbBox, minX, rectOffset){
         rect.setAttribute('y', textBoundingBox.y - rectOffset);
         rect.setAttribute('width', textBoundingBox.width + (2* rectOffset));
         rect.setAttribute('height', textBoundingBox.height + (2* rectOffset));
+        groups[i].classList.add(script_fixed_class_name);
     }
 
 }
