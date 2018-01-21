@@ -189,22 +189,36 @@ def get_all_transcript_ids(transcripts_dict):
     return ids
 
 
-def get_dictionary_of_ids_and_genes(transcripts_dict):
+def get_dictionary_of_ids_and_genes(transcripts_dict: dict, genes: list=None):
     """
     @description Get a dictionary of {genes:[t_id1,t_id2,...]}
     @param transcripts_dict (dict)
     @return (dict) of the form {symbol: [t_id]}
     """
-    final_dict = {}
-    for t_id ,t_list in transcripts_dict.items():
-        if not len(t_list) > 0:
-            continue
-        symbol = t_list[0]['gene_symbol']
-        if symbol in final_dict:
-            final_dict[symbol].append(t_id)
-        else:
-            final_dict[symbol] = [t_id]
-    return final_dict
+    if genes is None:
+        final_dict = {}
+        for t_id ,t_list in transcripts_dict.items():
+            if not len(t_list) > 0:
+                continue
+            symbol = t_list[0]['gene_symbol']
+            if symbol in final_dict:
+                final_dict[symbol].append(t_id)
+            else:
+                final_dict[symbol] = [t_id]
+        return final_dict
+    else:
+        final_dict = {}
+        for t_id ,t_list in transcripts_dict.items():
+            if not len(t_list) > 0:
+                continue
+            symbol = t_list[0]['gene_symbol']
+            if symbol in final_dict:
+                final_dict[symbol].append(t_id)
+            else:
+                if symbol in genes:
+                    final_dict[symbol] = [t_id]
+        return final_dict
+
 
 
 def get_dictionary_of_exons_and_genes(transcripts_dict):
