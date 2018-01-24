@@ -73,12 +73,14 @@ def get_exons_from_transcript_dict(transcript_data):
     cds_end = int(transcript_data['cds_end'])
     starts = transcript_data['exon_starts'].split(',')
     ends = transcript_data['exon_ends'].split(',')
+    strand = transcript_data['strand']
     for index in range(int(transcript_data['exon_count'])):
         start = int(starts[index])
         end = int(ends[index])
         length = abs(start-end)
         exons.append({
             'index':index,
+            'strand': strand,
             'length':length,
             'cds_start':cds_start,
             'cds_end': cds_end,

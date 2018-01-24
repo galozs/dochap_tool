@@ -2,7 +2,6 @@ import svgwrite
 from dochap_tool.common_utils import utils
 from dochap_tool.compare_utils import compare_exons
 from svgwrite import cm, mm
-from typing import Union
 
 colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
 
@@ -26,7 +25,9 @@ TOOLTIP_SIZE_X = 40
 TOOLTIP_SIZE_Y = 28
 TEXT_X_OFFSET = 10
 px_to_mm = 3.779528
+ARC_LENGTH = 2
 transform_px_to_mm = f'scale({px_to_mm})'
+
 
 def draw_test(w, h):
     dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
@@ -70,14 +71,13 @@ def draw_combination(
         starts = [transcript[0]['real_start'] for transcript in transcript_lists.values()]
         ends = [transcript[-1]['real_end'] for transcript in transcript_lists.values()]
         # probably need a check to see what strand it is.
-        # there is a 'sign' value stored in every exon in the gtf files
+        # there is a 'strand' value stored in every exon in the gtf files
         min_starts.append(min(starts))
         max_ends.append(max(ends))
     start_end_info = (min(min_starts), max(max_ends))
     user_svgs = draw_transcripts(user_transcripts, user_color, start_end_info, False, matching_dict)
     db_svgs = draw_transcripts(db_transcripts, db_color, start_end_info, False)
-    view_box_string = f'0 0 {DRAWING_SIZE_X} {DRAWING_SIZE_Y}'
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True) #,viewBox=view_box_string)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
     line_group = add_line(dwg, start_end_info[0], start_end_info[1], True, True, num_arches=0)
     dwg.add(line_group)
     dwg.add(add_text(dwg, '', tooltip_data = {'gene symbol':gene_name}))
@@ -113,7 +113,7 @@ def draw_transcripts(
         starts = [transcript[0]['real_start'] for transcript in transcripts.values()]
         ends = [transcript[-1]['real_end'] for transcript in transcripts.values()]
         # probably need a check to see what strand it is.
-        # there is a 'sign' value stored in every exon in the gtf files
+        # there is a 'strand' value stored in every exon in the gtf files
         min_start = min(starts)
         max_end = max(ends)
     else:
@@ -180,8 +180,7 @@ def draw_exons_real(
     :type matching_dict: dict
     :rtype str:
     """
-    view_box_string = f'0 0 {DRAWING_SIZE_X} {DRAWING_SIZE_Y}'
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)#, viewBox = view_box_string)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
     if len(exons) == 0:
         return dwg.tostring()
     # TODO probably not working right now
@@ -195,7 +194,7 @@ def draw_exons_real(
         transcript_start = start_end_info[0]
         transcript_end = start_end_info[1]
 
-    line_group = add_line(dwg, transcript_start,transcript_end,draw_line_numbers)
+    line_group = add_line(dwg, transcript_start,transcript_end,draw_line_numbers, arcs_direction=exons[0]['strand'])
     dwg.add(line_group)
     for exon in exons:
         exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end,len(exons), exons_color)
@@ -249,7 +248,6 @@ def create_exon_rect_real_pos(
     end  = exon['real_end']
     normalized_end = (utils.clamp_value(end, transcript_start, transcript_end) * 100) + EXON_START_X
     normalized_length = abs(normalized_end - normalized_start)
-    #c = colors[exon['index'] % len(colors)]
     rect_insert = (normalized_start ,EXON_Y)
     rect_size = (normalized_length ,EXON_HEIGHT)
     # check if before cds start
@@ -257,10 +255,10 @@ def create_exon_rect_real_pos(
     if exon_cds_intersection is not None:
         normalized_intersection_x2 = (utils.clamp_value(exon_cds_intersection[1], transcript_start, transcript_end) * 100) + EXON_START_X
 
-        first_start = (rect_insert[0], LINE_Y - (rect_size[1]/6))
-        first_size = (normalized_intersection_x2 - rect_insert[0],rect_size[1] /3)
-        second_start = (first_start[0]+first_size[0], rect_insert[1])
-        second_size = (rect_insert[0]+rect_size[0] - second_start[0], rect_size[1])
+        first_start = (rect_insert[0], rect_insert[1])
+        first_size = (normalized_intersection_x2 - rect_insert[0],rect_size[1])
+        second_start = (first_start[0]+first_size[0], LINE_Y - (rect_size[1]/6))
+        second_size = (rect_insert[0]+rect_size[0] - second_start[0], rect_size[1]/3)
 
         exon_group = dwg.g(class_ = 'exon_group')
         rect1 = dwg.rect(
@@ -452,7 +450,7 @@ def add_line(
         draw_line_arches: bool = True,
         num_arches: int = 10,
         arch_stroke_color: str = 'black',
-        arch_tooltip: bool = False
+        arcs_direction: str =None
         ) -> svgwrite.container.Group:
     """add_line
 
@@ -470,8 +468,8 @@ def add_line(
     :type num_arches: int
     :param arch_stroke_color :red:
     :type arch_stroke_color: str
-    :param arch_tooltip :False:
-    :type arch_tooltip: bool
+    :param arcs_direction :None:
+    :type arcs_direction: str
     :rtype: svgwrite.container.Group
     """
     start = [LINE_START_X, LINE_Y]
@@ -493,6 +491,7 @@ def add_line(
         ))
 
     num_arches = max(2, num_arches)
+    arcs_group = dwg.g(class_ = 'arcs_group', transform = transform_px_to_mm)
     if draw_line_arches:
         space_between_arches = (sign_end[0] - sign_start[0])/num_arches
         for i in range(num_arches+1):
@@ -505,8 +504,21 @@ def add_line(
                 end=to_size(arch_end, mm),
                 stroke=arch_stroke_color
             ))
-            if arch_tooltip:
-                pass
+            if arcs_direction == '-':
+                polyline = dwg.polyline(points=[], stroke='blue',stroke_width=0.3,fill="none", opacity=0.5)
+                p1 = (arch_position_x + ARC_LENGTH, arch_position_y + ARC_LENGTH)
+                p2 = (arch_position_x, arch_position_y)
+                p3 = (arch_position_x + ARC_LENGTH, arch_position_y - ARC_LENGTH)
+                polyline.points.extend([p1,p2,p3])
+                arcs_group.add(polyline)
+            elif arcs_direction == '+':
+                polyline = dwg.polyline(points=[], stroke='blue',stroke_width=0.3,fill="none",opacity=0.5)
+                p1 = (arch_position_x - ARC_LENGTH, arch_position_y + ARC_LENGTH)
+                p2 = (arch_position_x, arch_position_y)
+                p3 = (arch_position_x - ARC_LENGTH, arch_position_y - ARC_LENGTH)
+                polyline.points.extend([p1,p2,p3])
+                arcs_group.add(polyline)
+    line_group.add(arcs_group)
     return line_group
 
 
@@ -522,6 +534,9 @@ def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
     """
     new_tup = tuple([t*size for t in tup])
     return new_tup
+
+
+
 
 def add_text(
         dwg: svgwrite.Drawing,

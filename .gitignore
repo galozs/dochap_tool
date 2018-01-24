@@ -4,6 +4,7 @@
 *.pyc
 *.swp
 data/
+html/
 env/
 build/
 dist/

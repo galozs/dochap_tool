@@ -34,6 +34,7 @@ def parse_gtf_data(lines):
         # check if feature is exon
         if splitted[2] == 'exon':
             exon = {}
+            exon['chr'] = splitted[0]
             exon_data = splitted[8].split('"')
             exon['gene_symbol'] = exon_data[1]
             exon['transcript_id'] = exon_data[3]
@@ -44,8 +45,7 @@ def parse_gtf_data(lines):
                     exon['fpkm'] = float(exon_data[index+1])
             exon['real_start'] = int(splitted[3])
             exon['real_end'] = int(splitted[4])
-            exon['strand'] = int(splitted[5])
-            exon['sign'] = splitted[6]
+            exon['strand'] = splitted[6]
             exon['index'] = int(splitted[8].split('"')[5]) - 1
             exon['length'] = abs(exon['real_end'] - exon['real_start'])
             # TODO add fpkm/rpkm/tpm
