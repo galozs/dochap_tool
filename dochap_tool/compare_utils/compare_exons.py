@@ -77,7 +77,8 @@ def get_exons_from_transcript_dict(transcript_data):
     for index in range(int(transcript_data['exon_count'])):
         start = int(starts[index])
         end = int(ends[index])
-        length = abs(start-end)
+        # we use half-open representation of start-end, which means we must add 1 to the length.
+        length = abs(start-end) + 1
         exons.append({
             'index':index,
             'strand': strand,
@@ -87,23 +88,9 @@ def get_exons_from_transcript_dict(transcript_data):
             'real_start':start,
             'real_end':end
         })
-    set_relative_exons_position(exons)
     return exons
 
 
-def set_relative_exons_position(exons, start_mod=0):
-    """
-    @description Squash exons together to be concussive
-    @param exons (list)
-    @param start_mod (int) - - (default=0)
-    @return (list)
-    """
-    last_end = 0
-    for exon in exons:
-        exon['relative_start'] = last_end + start_mod + 1
-        exon['relative_end'] = exon['relative_start'] + exon['length']
-        last_end = exon['relative_end']
-    return exons
 
 
 def get_domains_of_gene_symbol(root_dir, specie, gene_symbol):
@@ -246,50 +233,6 @@ def check_if_transcript_id_in_db(conn, transcript_id):
         return False
 
 
-def get_domains_intersections_in_exons(domains_list, exons_list):
-    """
-    return all the intersections between a list of domains and a list of exons.
-    the intersections dictionary contains keys of exon's index (str) and value of list of intersections
-
-    {index:intersections[]}
-    """
-    intersections = {}
-    for exon_index, exon in enumerate(exons_list):
-        intersections[str(exon_index)] = []
-        for domain in domains_list:
-            intersection = get_domain_intersection_in_exon(domain, exon)
-            if intersection:
-                # append the intersection
-                intersection['domain'] = domain
-                intersections[str(exon_index)].append(intersection)
-            else:
-                # no intersection, ignore.
-                continue
-
-    return intersections
-
-
-def get_domain_intersection_in_exon(domain, exon):
-    """
-    return intesection between domain and exon, or None if no intersection exists.
-    """
-    intersection = {'start':None, 'end':None}
-    e_start = exon['relative_start']
-    e_end = exon['relative_end']
-    d_start = domain['start']
-    d_end = domain['end']
-    if e_start <= d_start <= e_end:
-        # domain starts in the exon
-        intersection['start'] = d_start
-
-    if e_start <= d_end <= e_end:
-        # domain ends in the exon
-        intersection['end'] = d_end
-
-    if intersection['start'] or intersection['end']:
-        return intersection
-    return None
-
 
 def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> dict:
     """compare_user_db_transcripts
@@ -311,7 +254,7 @@ def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> d
 
 def compare_every_exon(user_exons: list, db_exons: list) -> bool:
     """compare_every_exon
-    If exons match in length and count, return Treu, otherwise return False
+    If exons match in position and count, return True, otherwise return False
 
     :param user_exons:
     :type user_exons: list
@@ -323,41 +266,11 @@ def compare_every_exon(user_exons: list, db_exons: list) -> bool:
         return False
 
     for i in range(len(user_exons)):
-        if user_exons[i]['length'] - db_exons[i]['length'] > 1:
+        starts_match = user_exons[i]['real_start'] == db_exons[i]['real_start'] 
+        ends_match =  user_exons[i]['real_end'] == db_exons[i]['real_end'] 
+        if not (starts_match and ends_match):
             return False
     return True
 
 
 
-def compare_intersections(intersection, candidates):
-    """
-    sort a list of intersection candidates in comparison to given intersection
-    """
-    for candidate in candidates:
-        score = get_intersections_score(intersection, candidate)
-        candidate['score'] = score
-    candidates.sort(key=lambda i:i['score'])
-    return candidates
-
-
-def get_intersections_score(i1, i2):
-    """
-    compare two intersection and return the score
-    """
-    if i1['domain'] == i2['domain']:
-        score = 0
-        i1_length,i2_length = None,None
-        if i1['start'] and i1['end']:
-            i1_length = abs(i1['start'] - i1['end'])
-        if i2['start'] and i2['end']:
-            i2_length = abs(i2['start'] - i2['end'])
-        if i1_length and i2_length:
-            score = i1_length / i2_length
-        if score == 0:
-            return 0.0
-        if score > 1.0:
-            return 1.0/score
-        else:
-            return score
-    else:
-        return 0.0

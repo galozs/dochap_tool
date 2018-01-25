@@ -47,7 +47,8 @@ def parse_gtf_data(lines):
             exon['real_end'] = int(splitted[4])
             exon['strand'] = splitted[6]
             exon['index'] = int(splitted[8].split('"')[5]) - 1
-            exon['length'] = abs(exon['real_end'] - exon['real_start'])
+            # half open - means we add 1 to the length
+            exon['length'] = abs(exon['real_end'] - exon['real_start']) + 1
             # TODO add fpkm/rpkm/tpm
             # increment relative start location
             if last_transcript_id == exon['transcript_id']:

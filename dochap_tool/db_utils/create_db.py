@@ -35,6 +35,7 @@ def create_genbank_table(root_dir,specie,conn):
             cursor.execute("INSERT INTO genbank VALUES(?, ?, ?, ?, ?, ?,  ?, ?,?)",result)
             show_progress(index)
     print()
+    print('genbank table created.')
 
 def create_alias_table(root_dir,specie,conn):
     print("creating alias table")
@@ -47,6 +48,7 @@ def create_alias_table(root_dir,specie,conn):
             values.append((name,alias))
     cursor = conn.cursor()
     cursor.executemany("INSERT INTO alias VALUES(?,?)",values)
+    print(f'alias table created.')
 
 def create_known_gene_table(root_dir,specie,conn):
     print("creating knownGene table")
@@ -69,14 +71,26 @@ def create_known_gene_table(root_dir,specie,conn):
     dicts = [known_gene_dict[gene] for gene in known_gene_dict]
     tuple_of_values = (tuple(dic.values()) for dic in dicts)
     cursor.executemany("INSERT INTO knownGene VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",tuple_of_values)
+    print(f'known_gene table created.')
 
 
-def create_db(root_dir,specie):
-    # genbank table
-    # alias table
-    # known gene table
-    print(f"creating database for {specie}")
+def create_db(root_dir: str,specie: str, tables: list = None):
+    """create_db
+
+    :param root_dir:
+    :type root_dir: str
+    :param specie:
+    :type specie: str
+    :param tables:
+    :type tables: list
+    """
+    if tables is None:
+        tables = ['known_gene', 'alias', 'genbank']
+    # print(f"creating database for {specie}")
     with lite.connect(f'{root_dir}/{specie}/{specie}.db') as conn:
-        create_alias_table(root_dir,specie,conn)
-        create_known_gene_table(root_dir,specie,conn)
-        create_genbank_table(root_dir,specie,conn)
+        if 'alias' in tables:
+            create_alias_table(root_dir,specie,conn)
+        if 'known_gene' in tables:
+            create_known_gene_table(root_dir,specie,conn)
+        if 'genbank' in tables:
+            create_genbank_table(root_dir,specie,conn)

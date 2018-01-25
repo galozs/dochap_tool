@@ -20,18 +20,19 @@ def parse_known_gene_to_dict(root_dir,specie):
             data['strand'] = splitted_line[2]
             data['tx_start'] = splitted_line[3]
             data['tx_end'] = splitted_line[4]
-            data['cds_start'] = splitted_line[5]
+            # user gtf are half-open - which means that the start of the exon is included,
+            # so exon from 2 - 4 is of lenght 3, and not 2.
+            data['cds_start'] = offset_starts(splitted_line[5])
             data['cds_end'] = splitted_line[6]
             data['exon_count'] = splitted_line[7]
-            # TODO: if offset is needed, use it.
-            data['exon_starts'] = splitted_line[8]
+            data['exon_starts'] = offset_starts(splitted_line[8])
             data['exon_ends'] = splitted_line[9]
             data['protein_id'] = splitted_line[10]
             data['align_id'] = splitted_line[11]
             names[data['name']] = data
         return names
 
-def offset_exons(values_string):
+def offset_starts(values_string):
     """
     Offset given positions by +1
     @param values_string {str} values seperated by commas

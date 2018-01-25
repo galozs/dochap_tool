@@ -130,32 +130,6 @@ def draw_transcripts(
 
 
 
-def draw_exons(exons: list, transcript_id: str) -> str:
-    """draw_exons
-
-    :param exons:
-    :type exons: list
-    :param transcript_id:
-    :type transcript_id: str
-    :rtype: str
-    """
-    """Draw rectangles representing exons"""
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
-
-
-    if len(exons) == 0:
-        return None
-    squashed_start = exons[0]['relative_start']
-    squashed_end = exons[-1]['relative_end']
-    for exon in exons:
-        rect = create_exon_rect(dwg, exon, squashed_start, squashed_end)
-        dwg.add(rect)
-    text = add_text(dwg, transcript_id, tooltip_data= {'Transcript id':transcript_id})
-    dwg.add(text)
-    dwg.defs.add(dwg.script(content='fix_all();'))
-    return dwg.tostring()
-
-
 def draw_exons_real(
         exons: list,
         transcript_id: str,
@@ -288,7 +262,7 @@ def create_exon_rect_real_pos(
     if 'cds_start' in exon and 'cds_end' in exon:
         tooltip_data['CDS location'] = f"{exon['cds_start']} - {exon['cds_end']}"
     tooltip_data['Genomic location'] = f"{exon['real_start']} - {exon['real_end']}"
-    tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
+    #tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
     tooltip_data['Length'] = F"{exon['length']}"
     tooltip = add_tooltip(dwg, rect_insert, rect_size, tooltip_data, background_color='#d3d3d3', text_color='#00008b', border_color=color)
     rect_tooltip_group = dwg.g(class_='exon')
@@ -390,34 +364,6 @@ def switch_names(key: str, name_dict: dict) -> str:
     :rtype: str
     """
     return name_dict.get(key, key).replace('_', ' ')
-
-
-def create_exon_rect(dwg: svgwrite.Drawing, exon: dict, squashed_start: int, squashed_end: int) -> svgwrite.shapes.Rect:
-    """create_exon_rect
-
-    :param dwg:
-    :type dwg: svgwrite.Drawing
-    :param exon:
-    :type exon: dict
-    :param squashed_start:
-    :type squashed_start: int
-    :param squashed_end:
-    :type squashed_end: int
-    :rtype: svgwrite.shapes.Rect
-    """
-    start = exon['relative_start']
-    normalized_start = utils.clamp_value(start, squashed_start, squashed_end) * 100
-    end = exon['relative_end']
-    normalized_end = utils.clamp_value(end, squashed_start, squashed_end) * 100
-    normalized_length = abs(normalized_start - normalized_end)
-    c = colors[exon['index'] % len(colors)]
-    rect = dwg.rect(
-        insert=(normalized_start * mm, 5 * mm),
-        size=(normalized_length * mm, 5 * mm),
-        fill=c,
-        opacity=0.5
-    )
-    return rect
 
 
 def create_domain_rect(dwg: svgwrite.Drawing, domain: dict) -> svgwrite.shapes.Rect:
