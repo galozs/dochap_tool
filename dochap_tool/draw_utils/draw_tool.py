@@ -80,7 +80,7 @@ def draw_combination(
     dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
     line_group = add_line(dwg, start_end_info[0], start_end_info[1], True, True, num_arches=0)
     dwg.add(line_group)
-    dwg.add(add_text(dwg, '', tooltip_data = {'gene symbol':gene_name}))
+    dwg.add(add_text(dwg, '', tooltip_data={'gene symbol': gene_name}))
     dwg.defs.add(dwg.script(content='fix_all();'))
     return user_svgs, db_svgs, dwg.tostring()
 
@@ -88,7 +88,7 @@ def draw_combination(
 
 def draw_transcripts(
         transcripts: dict,
-        exons_color:str = 'blue',
+        exons_color: str = 'blue',
         start_end_info: tuple = None,
         numbered_line: bool = True,
         matching_dict: dict = None,
@@ -129,7 +129,6 @@ def draw_transcripts(
     return svgs
 
 
-
 def draw_exons_real(
         exons: list,
         transcript_id: str,
@@ -158,7 +157,7 @@ def draw_exons_real(
     if len(exons) == 0:
         return dwg.tostring()
     # TODO probably not working right now
-    #dwg.add_stylesheet('./dochap_tool/styles/my_style.css')
+    # dwg.add_stylesheet('./dochap_tool/styles/my_style.css')
     dwg.defs.add(dwg.script(content='fix_all();'))
 
     if not start_end_info:
@@ -168,17 +167,17 @@ def draw_exons_real(
         transcript_start = start_end_info[0]
         transcript_end = start_end_info[1]
 
-    line_group = add_line(dwg, transcript_start,transcript_end,draw_line_numbers, arcs_direction=exons[0]['strand'])
+    line_group = add_line(dwg, transcript_start, transcript_end, draw_line_numbers, arcs_direction=exons[0]['strand'])
     dwg.add(line_group)
     for exon in exons:
-        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end,len(exons), exons_color)
+        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, len(exons), exons_color)
         dwg.add(exon_tooltip_group)
-        text_group = add_text(dwg, transcript_id, exons_color, tooltip_data={'Transcript id': transcript_id} )
+        text_group = add_text(dwg, transcript_id, exons_color, tooltip_data={'Transcript id': transcript_id})
     dwg.add(text_group)
     if matching_dict:
         matching_text = 'Match exists' if transcript_id in matching_dict else 'No Match'
         color = 'green' if transcript_id in matching_dict else 'red'
-        tooltip_data = {'Match':matching_dict.get(transcript_id,'no match')}
+        tooltip_data = {'Match': amatching_dict.get(transcript_id, 'no match')}
         match_group = add_matching_status(dwg, matching_text, color, tooltip_data)
         dwg.add(match_group)
     return dwg.tostring()
@@ -200,7 +199,7 @@ def create_exon_rect_real_pos(
         exon: dict,
         transcript_start: int,
         transcript_end: int,
-        num_exons:int,
+        num_exons: int,
         color: str = 'blue',
         ) -> svgwrite.container.Group:
     """create_exon_rect_real_pos
@@ -219,50 +218,49 @@ def create_exon_rect_real_pos(
     """
     start = exon['real_start']
     normalized_start = (utils.clamp_value(start, transcript_start, transcript_end) * 100) + EXON_START_X
-    end  = exon['real_end']
+    end = exon['real_end']
     normalized_end = (utils.clamp_value(end, transcript_start, transcript_end) * 100) + EXON_START_X
     normalized_length = abs(normalized_end - normalized_start)
-    rect_insert = (normalized_start ,EXON_Y)
-    rect_size = (normalized_length ,EXON_HEIGHT)
+    rect_insert = (normalized_start, EXON_Y)
+    rect_size = (normalized_length, EXON_HEIGHT)
     # check if before cds start
     exon_cds_intersection = utils.get_exon_cds_intersection(exon)
     if exon_cds_intersection is not None:
         normalized_intersection_x2 = (utils.clamp_value(exon_cds_intersection[1], transcript_start, transcript_end) * 100) + EXON_START_X
 
         first_start = (rect_insert[0], rect_insert[1])
-        first_size = (normalized_intersection_x2 - rect_insert[0],rect_size[1])
+        first_size = (normalized_intersection_x2 - rect_insert[0], rect_size[1])
         second_start = (first_start[0]+first_size[0], LINE_Y - (rect_size[1]/6))
         second_size = (rect_insert[0]+rect_size[0] - second_start[0], rect_size[1]/3)
 
-        exon_group = dwg.g(class_ = 'exon_group')
+        exon_group = dwg.g(class_='exon_group')
         rect1 = dwg.rect(
-                insert = to_size(first_start, mm),
-                size = to_size(first_size, mm),
-                fill = color,
-                opacity = 0.5
+                insert=to_size(first_start, mm),
+                size=to_size(first_size, mm),
+                fill=color,
+                opacity=0.9
                 )
         rect2 = dwg.rect(
-                insert = to_size(second_start, mm),
-                size = to_size(second_size, mm),
-                fill = color,
-                opacity = 0.5
+                insert=to_size(second_start, mm),
+                size=to_size(second_size, mm),
+                fill=color,
+                opacity=0.9
                 )
         exon_group.add(rect1)
         exon_group.add(rect2)
         rect = exon_group
     else:
         rect = dwg.rect(
-            insert = to_size(rect_insert, mm),
-            size = to_size(rect_size, mm),
-            fill = color,
-            opacity = 0.5
+            insert=to_size(rect_insert, mm),
+            size=to_size(rect_size, mm),
+            fill=color,
+            opacity=0.9
         )
     tooltip_data = {}
     tooltip_data['Exon number'] = f"{exon['index']+1}/{num_exons}"
     if 'cds_start' in exon and 'cds_end' in exon:
         tooltip_data['CDS location'] = f"{exon['cds_start']} - {exon['cds_end']}"
     tooltip_data['Genomic location'] = f"{exon['real_start']} - {exon['real_end']}"
-    #tooltip_data['Relative location'] = f"{exon['relative_start']} - {exon['relative_end']}"
     tooltip_data['Length'] = F"{exon['length']}"
     tooltip = add_tooltip(dwg, rect_insert, rect_size, tooltip_data, background_color='#d3d3d3', text_color='#00008b', border_color=color)
     rect_tooltip_group = dwg.g(class_='exon')
@@ -309,25 +307,25 @@ def add_tooltip(
     tooltip_insert_y = rect_insert[1] if under else rect_insert[1] - TOOLTIP_SIZE_Y
     tooltip_insert = tooltip_insert_x, tooltip_insert_y
     background_rect = dwg.rect(
-        insert = to_size(tooltip_insert, mm),
-        size = to_size(tooltip_size, mm),
-        rx = 2*mm,
-        ry = 2*mm,
+        insert=to_size(tooltip_insert, mm),
+        size=to_size(tooltip_size, mm),
+        rx=2*mm,
+        ry=2*mm,
         fill=background_color,
-        opacity = 1.0,
+        opacity=1.0,
         stroke=border_color
     )
     tooltip_group.add(background_rect)
-    text = dwg.text(insert = to_size((tooltip_insert[0],tooltip_insert[1]-2),mm), text="")
+    text = dwg.text(insert=to_size((tooltip_insert[0], tooltip_insert[1]-2), mm), text="")
     tooltip_data = extract_tooltip(tooltip_data, params)
     num_lines = len(tooltip_data)
     for index, (key, value) in enumerate(tooltip_data.items()):
         line = f'{key}: {value}'
         height = tooltip_size[1]/num_lines
         text.add(svgwrite.text.TSpan(
-            text = line,
-            x = [(tooltip_insert[0]+1)*mm],
-            dy = [height*mm],
+            text=line,
+            x=[(tooltip_insert[0]+1)*mm],
+            dy=[height*mm],
             text_anchor="start",
             style=f"fill:{text_color};"
         ))
@@ -335,7 +333,7 @@ def add_tooltip(
     return tooltip_group
 
 
-def extract_tooltip(tooltip_data: dict, params: list=None, name_dict: dict=None ) -> dict:
+def extract_tooltip(tooltip_data: dict, params: list=None, name_dict: dict=None) -> dict:
     """extract_tooltip
 
     :param tooltip_data:
@@ -349,8 +347,8 @@ def extract_tooltip(tooltip_data: dict, params: list=None, name_dict: dict=None 
     if not params:
         params = tooltip_data.keys()
     if not name_dict:
-        name_dict= {'real_start':'genomic_start', 'real_end':'genomic_end' }
-    extracted_params= {switch_names(key, name_dict):value for key,value in tooltip_data.items() if key in params}
+        name_dict = {'real_start': 'genomic_start', 'real_end': 'genomic_end'}
+    extracted_params = {switch_names(key, name_dict): value for key, value in tooltip_data.items() if key in params}
     return extracted_params
 
 
@@ -422,22 +420,22 @@ def add_line(
     end = [LINE_END_X, LINE_Y]
     sign_start = [EXON_START_X, LINE_Y]
     sign_end = [EXON_END_X, LINE_Y]
-    normalized_start_position = to_size(start,mm)
+    normalized_start_position = to_size(start, mm)
     normalized_end_position = to_size(end, mm)
-    line_group = dwg.g(class_ = 'line_group')
-    line_group.add(dwg.line(start=normalized_start_position,end=normalized_end_position, stroke="green"))
+    line_group = dwg.g(class_='line_group')
+    line_group.add(dwg.line(start=normalized_start_position, end=normalized_end_position, stroke="green"))
     if draw_line_numbers:
         line_group.add(dwg.text(
             insert=to_size((sign_start[0] - TEXT_X_OFFSET, LINE_Y - 3), mm),
             text=str(start_value)
         ))
         line_group.add(dwg.text(
-            insert=to_size((sign_end[0] - TEXT_X_OFFSET, LINE_Y - 3),mm),
+            insert=to_size((sign_end[0] - TEXT_X_OFFSET, LINE_Y - 3), mm),
             text=str(end_value)
         ))
 
     num_arches = max(2, num_arches)
-    arcs_group = dwg.g(class_ = 'arcs_group', transform = transform_px_to_mm)
+    arcs_group = dwg.g(class_='arcs_group', transform=transform_px_to_mm)
     if draw_line_arches:
         space_between_arches = (sign_end[0] - sign_start[0])/num_arches
         for i in range(num_arches+1):
@@ -451,22 +449,21 @@ def add_line(
                 stroke=arch_stroke_color
             ))
             if arcs_direction == '-':
-                polyline = dwg.polyline(points=[], stroke='blue',stroke_width=0.3,fill="none", opacity=0.5)
+                polyline = dwg.polyline(points=[], stroke='blue', stroke_width=0.3, fill="none", opacity=0.5)
                 p1 = (arch_position_x + ARC_LENGTH, arch_position_y + ARC_LENGTH)
                 p2 = (arch_position_x, arch_position_y)
                 p3 = (arch_position_x + ARC_LENGTH, arch_position_y - ARC_LENGTH)
-                polyline.points.extend([p1,p2,p3])
+                polyline.points.extend([p1, p2, p3])
                 arcs_group.add(polyline)
             elif arcs_direction == '+':
-                polyline = dwg.polyline(points=[], stroke='blue',stroke_width=0.3,fill="none",opacity=0.5)
+                polyline = dwg.polyline(points=[], stroke='blue', stroke_width=0.3, fill="none", opacity=0.5)
                 p1 = (arch_position_x - ARC_LENGTH, arch_position_y + ARC_LENGTH)
                 p2 = (arch_position_x, arch_position_y)
                 p3 = (arch_position_x - ARC_LENGTH, arch_position_y - ARC_LENGTH)
-                polyline.points.extend([p1,p2,p3])
+                polyline.points.extend([p1, p2, p3])
                 arcs_group.add(polyline)
     line_group.add(arcs_group)
     return line_group
-
 
 
 def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
@@ -480,8 +477,6 @@ def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
     """
     new_tup = tuple([t*size for t in tup])
     return new_tup
-
-
 
 
 def add_text(
@@ -500,14 +495,14 @@ def add_text(
     :type color: str
     :rtype: svgwrite.container.Group
     """
-    transcript_name_group = dwg.g(class_ = 'transcript_id_rect')
+    transcript_name_group = dwg.g(class_='transcript_id_rect')
     rect_insert = (TEXT_X, TEXT_Y - EXON_HEIGHT)
     rect_size = (DRAWING_SIZE_X - TEXT_X, EXON_HEIGHT*2)
     rect = dwg.rect(
-            insert=to_size(rect_insert,mm),
-            size = to_size(rect_size, mm),
-            fill = color,
-            opacity = 0.2
+            insert=to_size(rect_insert, mm),
+            size=to_size(rect_size, mm),
+            fill=color,
+            opacity= 0.2
     )
     text = dwg.text(insert=(TEXT_X*mm, TEXT_Y*mm), text=text_string)
     transcript_name_group.add(text)
@@ -521,15 +516,15 @@ def add_text(
             text_color='#00008b',
             border_color=color
     )
-
     transcript_name_group.add(tooltip_group)
     return transcript_name_group
+
 
 def add_matching_status(
         dwg: svgwrite.Drawing,
         text_string: str,
         color: str = 'teal',
-        tooltip_data:dict = None,
+        tooltip_data: dict = None,
         ) -> svgwrite.container.Group:
     """add_matching_status
 
@@ -547,12 +542,12 @@ def add_matching_status(
     rect_insert = (MATCH_X, MATCH_Y)
     rect_size = (MATCH_SIZE_X, MATCH_SIZE_Y)
     rect = dwg.rect(
-            insert=to_size(rect_insert,mm),
-            size = to_size(rect_size, mm),
-            fill = color,
-            opacity = 0.2
+            insert=to_size(rect_insert, mm),
+            size=to_size(rect_size, mm),
+            fill=color,
+            opacity=0.2
     )
-    text = dwg.text(insert=to_size(rect_insert,mm), text=text_string)
+    text = dwg.text(insert=to_size(rect_insert, mm), text=text_string)
     match_status_group.add(text)
     match_status_group.add(rect)
     tooltip_group = add_tooltip(
@@ -565,8 +560,8 @@ def add_matching_status(
             border_color=color,
             under = True
     )
-    some_y = (LINE_Y - MATCH_SIZE_Y - MATCH_Y) / 2
-    middle_match_status = (MATCH_Y + MATCH_SIZE_Y )/ 2
+    some_y = (LINE_Y - MATCH_SIZE_Y - MATCH_Y)/2
+    middle_match_status = (MATCH_Y + MATCH_SIZE_Y)/2
     path_group = dwg.g(class_ = 'path_group', transform = transform_px_to_mm)
     path_string = f'M {LINE_START_X} {LINE_Y} L {LINE_START_X} {some_y} L {MATCH_X} {some_y} L {MATCH_X} {middle_match_status}'
     path_group.add(dwg.path(d = path_string, opacity = 0.5, stroke = color))
