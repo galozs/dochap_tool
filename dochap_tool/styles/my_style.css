@@ -1,7 +1,6 @@
 .exon .special_rect_tooltip {
     visibility: hidden;
 }
-
 .exon:hover .special_rect_tooltip {
     visibility: visible;
 }
@@ -38,6 +37,14 @@ rect:hover{
 
 .match_status_group:hover .special_rect_tooltip {
     visibility: visible;
+}
+
+.arcs_group:hover{
+    opacity:1.0;
+}
+
+polyline:hover{
+    opacity:1.0;
 }
 
 line{
