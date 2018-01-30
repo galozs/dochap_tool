@@ -1,10 +1,10 @@
 import svgwrite
+import typing
 from dochap_tool.common_utils import utils
 from dochap_tool.compare_utils import compare_exons
 from svgwrite import cm, mm
 
 colors = ['grey', 'black', 'orange', 'teal', 'green', 'blue', 'red', 'brown', 'pink', 'yellow']
-
 MATCH_X = 5
 MATCH_Y = 5
 MATCH_SIZE_X = 15
@@ -29,21 +29,6 @@ ARC_LENGTH = 2
 transform_px_to_mm = f'scale({px_to_mm})'
 
 
-def draw_test(w, h):
-    dwg = svgwrite.Drawing(size=(100*cm, 10*cm), profile='tiny', debug=True)
-    # set user coordinate space
-    rect = dwg.rect(
-        insert=(10*mm, 10*mm),
-        size=(10*mm, 10*mm),
-        fill='blue',
-        stroke='red',
-        opacity=0.5,
-        stroke_width=1*mm
-    )
-    dwg.add(rect)
-    return dwg.tostring()
-
-
 def draw_combination(
         gene_name: str,
         user_transcripts: dict,
@@ -52,7 +37,8 @@ def draw_combination(
         db_color: str
         ) -> tuple:
     """draw_combination
-
+    :param gene_name:
+    :type gene_name: str
     :param user_transcripts:
     :type user_transcripts: dict
     :param user_color:
@@ -85,14 +71,13 @@ def draw_combination(
     return user_svgs, db_svgs, dwg.tostring()
 
 
-
 def draw_transcripts(
         transcripts: dict,
         exons_color: str = 'blue',
         start_end_info: tuple = None,
         numbered_line: bool = True,
         matching_dict: dict = None,
-        ) -> list:
+        ) -> typing.Union[None, dict]:
     """draw transcripts
 
     :param transcripts:
@@ -135,7 +120,7 @@ def draw_exons_real(
         start_end_info: tuple = None,
         draw_line_numbers: bool = True,
         exons_color: str = 'blue',
-        matching_dict: dict = {},
+        matching_dict: dict = None,
         ) -> str:
     """draw exons genomic location on a line
 
@@ -153,11 +138,9 @@ def draw_exons_real(
     :type matching_dict: dict
     :rtype str:
     """
-    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y),mm), profile='tiny', debug=True)
+    dwg = svgwrite.Drawing(size=to_size((DRAWING_SIZE_X, DRAWING_SIZE_Y), mm), profile='tiny', debug=True)
     if len(exons) == 0:
         return dwg.tostring()
-    # TODO probably not working right now
-    # dwg.add_stylesheet('./dochap_tool/styles/my_style.css')
     dwg.defs.add(dwg.script(content='fix_all();'))
 
     if not start_end_info:
@@ -169,17 +152,22 @@ def draw_exons_real(
 
     line_group = add_line(dwg, transcript_start, transcript_end, draw_line_numbers, arcs_direction=exons[0]['strand'])
     dwg.add(line_group)
+
     for exon in exons:
-        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, len(exons), exons_color)
+        exon_tooltip_group = create_exon_rect_real_pos(dwg, exon, transcript_start, transcript_end, len(exons),
+                                                       exons_color)
         dwg.add(exon_tooltip_group)
-        text_group = add_text(dwg, transcript_id, exons_color, tooltip_data={'Transcript id': transcript_id})
+
+    text_group = add_text(dwg, transcript_id, exons_color, tooltip_data={'Transcript id': transcript_id})
     dwg.add(text_group)
-    if matching_dict:
+
+    if matching_dict is not None:
         matching_text = 'Match exists' if transcript_id in matching_dict else 'No Match'
         color = 'green' if transcript_id in matching_dict else 'red'
-        tooltip_data = {'Match': amatching_dict.get(transcript_id, 'no match')}
+        tooltip_data = {'Match': matching_dict.get(transcript_id, 'no match')}
         match_group = add_matching_status(dwg, matching_text, color, tooltip_data)
         dwg.add(match_group)
+
     return dwg.tostring()
 
 
@@ -212,6 +200,8 @@ def create_exon_rect_real_pos(
     :type transcript_start: int
     :param transcript_end:
     :type transcript_end: int
+    :param num_exons:
+    :type num_exons: int
     :param color:
     :type color: str
     :rtype: svgwrite.container.Group
@@ -294,10 +284,12 @@ def add_tooltip(
     :type background_color: str
     :param text_color:
     :type text_color: str
-    :param params:
-    :type params: list
+    :param border_color: None,
+    :type border_color: str
     :param under:
     :type under: bool
+    :param params:
+    :type params: list
     :rtype: svgwrite.container.Group
     """
     tooltip_group = dwg.g(class_="special_rect_tooltip")
@@ -375,7 +367,6 @@ def create_domain_rect(dwg: svgwrite.Drawing, domain: dict) -> svgwrite.shapes.R
     """
     start = domain['start']
     length = domain['end'] - domain['start']
-    # TODO different colors
     c = colors[domain['index'] % len(colors)]
     rect = dwg.rect(
         insert=((start/50)*mm, 5*mm),
@@ -466,7 +457,7 @@ def add_line(
     return line_group
 
 
-def to_size(tup: tuple, size: svgwrite.Unit) -> tuple:
+def to_size(tup: typing.Iterable, size: svgwrite.Unit) -> tuple:
     """to_size
 
     :param tup:
@@ -483,7 +474,7 @@ def add_text(
         dwg: svgwrite.Drawing,
         text_string: str,
         color: str = 'teal',
-        tooltip_data:dict = None
+        tooltip_data: dict = None
         ) -> svgwrite.container.Group:
     """add_text
 
@@ -493,6 +484,8 @@ def add_text(
     :type text_string: str
     :param color:
     :type color: str
+    :param tooltip_data: None
+    :type tooltip_data: dict
     :rtype: svgwrite.container.Group
     """
     transcript_name_group = dwg.g(class_='transcript_id_rect')
@@ -558,14 +551,14 @@ def add_matching_status(
             background_color='#d3d3d3',
             text_color='#00008b',
             border_color=color,
-            under = True
+            under=True
     )
     some_y = (LINE_Y - MATCH_SIZE_Y - MATCH_Y)/2
     middle_match_status = (MATCH_Y + MATCH_SIZE_Y)/2
     path_group = dwg.g(class_ = 'path_group', transform = transform_px_to_mm)
     path_string = f'M {LINE_START_X} {LINE_Y} L {LINE_START_X} {some_y} L {MATCH_X} {some_y} L {MATCH_X} {middle_match_status}'
     path_group.add(dwg.path(d = path_string, opacity = 0.5, stroke = color))
-    # add path line from begining of the transcript line to the status match
+    # add path line from beginning of the transcript line to the status match
     match_status_group.add(path_group)
     match_status_group.add(tooltip_group)
     return match_status_group
