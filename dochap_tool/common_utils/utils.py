@@ -115,11 +115,11 @@ def create_ftp_connection(address: str, cert: tuple = None) -> ftplib.FTP:
     return ftp
 
 
-def count_lines(file_object: str) -> int:
+def count_lines(file_object: typing.IO) -> int:
     """count_lines
 
     :param file_object:
-    :type file_object: str
+    :type file_object: typing.IO
     :rtype: int
     """
     lines = 0
@@ -195,10 +195,10 @@ def get_connection_object(root_dir: str, specie: str) -> sqlite3.Connection:
 
 
 def clamp_value(value, min_value, max_value):
-    '''
+    """
     clamp value between min and max
     return value from 0 to 1
-    '''
+    """
     used_value = min(value, max_value)
     used_value = max(used_value, min_value)
     return (used_value - min_value) / (max_value - min_value)
@@ -217,7 +217,7 @@ def format_and_color(param: any) -> str:
     return colorful_json
 
 
-def get_exon_cds_intersection(exon: dict) -> tuple:
+def get_exon_cds_intersection(exon: dict) -> typing.Union[None, tuple]:
     """get_exon_cds_intersection
 
     :param exon:
@@ -236,6 +236,6 @@ def get_exon_cds_intersection(exon: dict) -> tuple:
             # intersection
             intersection_start = max(real_start, cds_start)
             intersection_end = min(real_end, cds_end)
-            return (intersection_start, intersection_end)
+            return intersection_start, intersection_end
     else:
         return None
