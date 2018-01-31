@@ -557,7 +557,7 @@ def add_matching_status(
     middle_match_status = (MATCH_Y + MATCH_SIZE_Y)/2
     path_group = dwg.g(class_ = 'path_group', transform = transform_px_to_mm)
     path_string = f'M {LINE_START_X} {LINE_Y} L {LINE_START_X} {some_y} L {MATCH_X} {some_y} L {MATCH_X} {middle_match_status}'
-    path_group.add(dwg.path(d = path_string, opacity = 0.5, stroke = color))
+    path_group.add(dwg.path(d=path_string, opacity=0.5, stroke=color))
     # add path line from beginning of the transcript line to the status match
     match_status_group.add(path_group)
     match_status_group.add(tooltip_group)
