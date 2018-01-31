@@ -43,6 +43,24 @@ rect:hover{
     opacity:1.0;
 }
 
+.user_transcript_no_match{
+    opacity: 0.8;
+}
+
+.db_transcript_no_match{
+    opacity: 0.8;
+}
+
+.user_transcript_matched{
+    /* hiding behind the db_transcript that matches them, set to invisible */
+    visibility: hidden;
+}
+
+.db_transcript_matched{
+    opacity: 0.8;
+}
+
+
 polyline:hover{
     opacity:1.0;
 }

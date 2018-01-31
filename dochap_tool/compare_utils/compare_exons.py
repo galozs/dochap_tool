@@ -130,12 +130,12 @@ def combine_sites_and_regions(sites_string, regions_string):
 
 
 def extract_domains_data(domains_string, dom_type):
-    '''
+    """
     @description Extract information from the domain string using regex.
     @param domains_string (string)
     @param dom_type (string) - type of domain (region,site)
     @return (list of dict)
-    '''
+    """
     domain_strings_list = re.findall(expression, domains_string)
     domains_description = domains_string.split(r'],')
     domains = []
@@ -271,6 +271,64 @@ def compare_every_exon(user_exons: list, db_exons: list) -> bool:
         if not (starts_match and ends_match):
             return False
     return True
+
+
+def get_exons_in_cds(transcript: list, cds_start: int, cds_end: int) -> list:
+    """Get exons in cds of a given transcript
+    :param transcript:
+    :type transcript: dict
+    :param cds_start:
+    :type cds_start: int
+    :param cds_end:
+    :type cds_end: int
+    :return: list
+    """
+    exons_in_cds = []
+    for exon in transcript:
+        if exon.real_end <= cds_start:
+            continue
+        if exon.real_start >= cds_end:
+            continue
+        exon['in_cds_start'] = max(cds_start, exon.real_start)
+        exon['in_cds_end'] = min(cds_end, exon.real_end)
+        # add +1 to length because positions are stored as half-open
+        exon['in_cds_length'] = exon['in_cds_end'] - exon['in_cds_start'] + 1
+        exons_in_cds.append(exon)
+    return exons_in_cds
+
+
+def detect_frame_shift(db_transcript: dict, user_transcript: dict) -> None:
+    """Detect frame shift occurances in user transcript
+
+    :param db_transcript:
+    :type db_transcript: dict
+    :param user_transcript:
+    :type user_transcript: dict
+    :return: None
+    """
+    combine_list = zip(db_transcript, user_transcript)
+    current_shift = 0
+    for db_exon, user_exon in combine_list:
+        start_offset = db_exon['in_cds_start'] - user_exon['in_cds_start']
+        end_offset = db_exon['in_cds_end'] - user_exon['in_cds_end']
+        current_shift = (start_offset + end_offset + current_shift) % 3
+        user_exon['frame_shift'] = current_shift
+
+
+def set_relative_positions(exons_in_cds: list) -> None:
+    """Set relative positions for exons in cds
+
+    :param exons_in_cds:
+    :type exons_in_cds: list
+    :return: None
+    """
+    last_exon_end = 0
+    for exon in exons_in_cds:
+        exon['relative_start'] = last_exon_end + 1
+        exon['relative_end'] = exon['relative_start'] + exon['in_cds_length']
+        last_exon_end = exon['relative_end']
+
+
 
 
 
