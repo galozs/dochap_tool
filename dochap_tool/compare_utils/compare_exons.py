@@ -224,6 +224,7 @@ def get_ncbi_gene_symbol_of_transcript_id(conn,transcript_id):
             return alias
     return None
 
+
 def check_if_transcript_id_in_db(conn, transcript_id):
     """Checks if a given transcript id exist in the given database"""
     aliases = get_gene_aliases_of_transcript_id(conn, transcript_id)
@@ -231,7 +232,6 @@ def check_if_transcript_id_in_db(conn, transcript_id):
         return True
     else:
         return False
-
 
 
 def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> dict:
@@ -251,6 +251,7 @@ def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> d
                 matching_dict[t_id] = db_t_id
                 break
     return matching_dict
+
 
 def compare_every_exon(user_exons: list, db_exons: list) -> bool:
     """compare_every_exon
