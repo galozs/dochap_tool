@@ -8,6 +8,7 @@ if import_path not in sys.path:
 from dochap_tool.common_utils import utils
 from dochap_tool.compare_utils import compare_exons
 
+
 def parse_gtf_file(file_path):
     """
     @description Parse gtf file into transcripts dict by transcript id of exons
@@ -85,6 +86,7 @@ def get_gene_symbol_of_transcript_id(transcripts_dict, transcript_id):
             return t_list[0]['gene_symbol'].lower()
     return None
 
+
 def get_transcripts_like_id(transcripts_dict, transcript_id):
     """
     @description get all transcripts that have the same gene symbol as the given transcriptid
@@ -134,9 +136,6 @@ def get_transcripts_like_ids(transcripts_dict, transcript_id_list):
     return transcripts_by_gene
 
 
-
-
-
 def get_transcripts_by_gene_symbol(root_dir, specie, transcripts_dict, gene_symbol):
     """
     @description Get transcripts of the given gene symbol
@@ -167,10 +166,11 @@ def get_transcripts_by_gene_symbol(root_dir, specie, transcripts_dict, gene_symb
 
 
 def get_all_genes_symbols(transcripts_dict):
-    """
-    @description Get a list of all the unique gene symbols
-    @param transcripts_dict (dict of list)
-    @return (string[])
+    """Get a list of all the unique gene symbols
+
+    :param transcripts_dict
+    :type transcripts_dict: dict
+    :return list
     """
     genes = {
             t_list[0]['gene_symbol'].lower()
@@ -180,21 +180,25 @@ def get_all_genes_symbols(transcripts_dict):
     return genes
 
 
-def get_all_transcript_ids(transcripts_dict):
-    """
-    @description Get a list of all the unique transcripts ids
-    @param transcripts_dict (string[])
-    @retrun (string[])
+def get_all_transcript_ids(transcripts_dict: dict) -> list:
+    """Get a list of all the unique transcripts ids
+
+    :param transcripts_dict
+    :type transcripts_dict: dict
+    :rtype list
     """
     ids = list(set(transcripts_dict.keys()))
     return ids
 
 
 def get_dictionary_of_ids_and_genes(transcripts_dict: dict, genes: list=None):
-    """
-    @description Get a dictionary of {genes:[t_id1,t_id2,...]}
-    @param transcripts_dict (dict)
-    @return (dict) of the form {symbol: [t_id]}
+    """Get a dictionary of {genes:[t_id1,t_id2,...]}
+
+    :param transcripts_dict
+    :type transcripts_dict: dict
+    :param genes: None
+    :type genes: list
+    :return (dict) of the form {symbol: [t_id]}
     """
     if genes is None:
         final_dict = {}
@@ -221,7 +225,6 @@ def get_dictionary_of_ids_and_genes(transcripts_dict: dict, genes: list=None):
         return final_dict
 
 
-
 def get_dictionary_of_exons_and_genes(transcripts_dict):
     """
     @description Get a dictionary of {genes:[{t_id1:t_list1}]}
@@ -240,9 +243,8 @@ def get_dictionary_of_exons_and_genes(transcripts_dict):
     return final_dict
 
 
-
 def parser():
-    print('no cli yet!')
+    print('Read the file documentation to know how to work with it.')
     return
 
 

@@ -1,6 +1,7 @@
 import sys
 import sqlite3 as lite
 import re
+import typing
 import os
 # add to path if need to
 import_path = '/'.join(__file__.split('/')[:-1])
@@ -234,7 +235,7 @@ def check_if_transcript_id_in_db(conn, transcript_id):
         return False
 
 
-def compare_user_db_transcripts(user_transcripts:dict, db_transcripts:dict) -> dict:
+def compare_user_db_transcripts(user_transcripts: dict, db_transcripts: dict) -> dict:
     """compare_user_db_transcripts
     Get dict of the form {user_t_id : matching_db_t_id}
 
@@ -274,8 +275,119 @@ def compare_every_exon(user_exons: list, db_exons: list) -> bool:
     return True
 
 
+def score_matches(user_transcript: list, other_transcripts: dict) -> dict:
+    """Get dictionary of match scores of given user transcript and other transcripts to compare to.
+
+    :param user_transcript:
+    :type user_transcript: list
+    :param other_transcripts:
+    :type other_transcripts: dict
+    :return: dict
+    """
+    matches = {}
+    for key, other_transcript in other_transcripts.items():
+        matches[key] = score_transcripts(user_transcript, other_transcript)
+    return matches
+
+
+def get_best_match(user_transcript: list, other_transcripts: dict) -> list:
+    """Returns the best match for a given transcript from other transcripts.
+
+    Note: Could be multiple results
+    :param user_transcript:
+    :type user_transcript: list
+    :param other_transcripts:
+    :type other_transcripts: dict
+    :return: list
+    """
+    matches_scores = score_matches(user_transcript, other_transcripts)
+    highest_score = max(matches_scores.values())
+    result = [key for key in matches_scores if matches_scores[key] == highest_score]
+    return result
+
+
+def score_transcripts(user_transcript: list, other_transcript: list) -> float:
+    """Score transcripts based on exons values
+
+    The score moves between 0 and 1
+    The score is 1 when they match perfectly, and 0 when they do not match at all.
+
+
+    :param user_transcript:
+    :type user_transcript: list
+    :param other_transcript:
+    :type other_transcript: list
+    :return: float
+    """
+    matches = 0
+    for user_exon in user_transcript:
+        for db_exon in other_transcript:
+            if user_exon['real_start'] == db_exon['real_start'] and user_exon['real_end'] == db_exon['real_end']:
+                matches += 1
+    score = matches / len(user_transcript)
+    return score
+
+
+def get_intersections_result(db_transcript: list, user_transcript: list, domains_variations: list) -> list:
+    """Get intersections result between user transcript and domains variations.
+
+    The intersection is in comparison to relevant database transcript, across all domains variation of the given gene.
+    :param db_transcript:
+    :type db_transcript: list
+    :param user_transcript:
+    :type user_transcript: list
+    :param domains_variations:
+    :type domains_variations: list
+    :return: list
+    """
+    cds_start, cds_end = extract_cds_info(db_transcript)
+    db_exons_in_cds = get_exons_in_cds(db_transcript, cds_start, cds_end)
+    user_exons_in_cds = get_exons_in_cds(user_transcript, cds_start, cds_end)
+    detect_frame_shift(db_exons_in_cds, user_exons_in_cds)
+    set_relative_positions(db_exons_in_cds)
+    set_relative_positions(user_exons_in_cds)
+    detect_frame_shift(db_exons_in_cds, user_exons_in_cds)
+    set_domains_exons_intersections(db_exons_in_cds, domains_variations)
+    detect_junction_defects(db_exons_in_cds, user_exons_in_cds)
+    result = extract_intersections_result(user_exons_in_cds)
+    return result
+
+
+def extract_intersections_result(user_exons_in_cds: list, wanted_keys: list=None) -> list:
+    """Extracts the intersection result from each exon.
+
+    :param user_exons_in_cds:
+    :type user_exons_in_cds: list
+    :param wanted_keys: None - values to extract. list of strings (defaults to None and given defaults keys)
+    :type  wanted_keys: list
+    :return: list
+    """
+    result = []
+    if wanted_keys is None:
+        wanted_keys = ['index', 'relative_start', 'relative_end', 'frame_shift', 'junction_defects']
+    for exon in user_exons_in_cds:
+        data = utils.get_partial_dictionary(exon, wanted_keys)
+        result.append(data)
+    return result
+
+
+def extract_cds_info(db_transcript: list) -> typing.Union[tuple, None]:
+    """Get cds info from database transcript
+
+    :param db_transcript:
+    :type db_transcript: list
+    :return: typing.Union[tuple, None]
+    """
+    if len(db_transcript) == 0:
+        return None
+    cds_start = db_transcript[0]['cds_start']
+    cds_end = db_transcript[0]['cds_end']
+    return cds_start, cds_end
+
+
 def get_exons_in_cds(transcript: list, cds_start: int, cds_end: int) -> list:
     """Get exons in cds of a given transcript
+
     :param transcript:
     :type transcript: dict
     :param cds_start:
@@ -286,25 +398,25 @@ def get_exons_in_cds(transcript: list, cds_start: int, cds_end: int) -> list:
     """
     exons_in_cds = []
     for exon in transcript:
-        if exon.real_end <= cds_start:
+        if exon['real_end'] <= cds_start:
             continue
-        if exon.real_start >= cds_end:
+        if exon['real_start']>= cds_end:
             continue
-        exon['in_cds_start'] = max(cds_start, exon.real_start)
-        exon['in_cds_end'] = min(cds_end, exon.real_end)
+        exon['in_cds_start'] = max(cds_start, exon['real_start'])
+        exon['in_cds_end'] = min(cds_end, exon['real_end'])
         # add +1 to length because positions are stored as half-open
         exon['in_cds_length'] = exon['in_cds_end'] - exon['in_cds_start'] + 1
         exons_in_cds.append(exon)
     return exons_in_cds
 
 
-def detect_frame_shift(db_transcript: dict, user_transcript: dict) -> None:
+def detect_frame_shift(db_transcript: list, user_transcript: list) -> None:
     """Detect frame shift occurances in user transcript
 
     :param db_transcript:
-    :type db_transcript: dict
+    :type db_transcript: list
     :param user_transcript:
-    :type user_transcript: dict
+    :type user_transcript: list
     :return: None
     """
     combine_list = zip(db_transcript, user_transcript)
@@ -330,6 +442,48 @@ def set_relative_positions(exons_in_cds: list) -> None:
         last_exon_end = exon['relative_end']
 
 
+def set_domains_exons_intersections(exons_in_cds: list, domains_variations: list) -> None:
+    """Find for each exon what domains it intersects with
+
+    :param exons_in_cds:
+    :type exons_in_cds: list
+    :param domains_variations: list of domains variations
+    :type domains_variations: list
+    :return: None
+    """
+    for exon in exons_in_cds:
+        exon['overlap_domains'] = []
+        for variation in domains_variations:
+            overlaps = []
+            for domain in variation:
+                if exon['relative_start'] >= domain['end']:
+                    # no overlap
+                    continue
+                if exon['relative_end'] <= domain['start']:
+                    # no overlap
+                    continue
+                overlaps.append(domain)
+            exon['overlap_domains'].append(overlaps)
 
 
+def detect_junction_defects(db_transcript: list, user_transcript: list) -> None:
+    """Find possible junctions defects in every exon/domain intersection
 
+    :param db_transcript:
+    :type db_transcript: list
+    :param user_transcript:
+    :type user_transcript: list
+    :return: None
+    """
+    for db_exon, user_exon in zip(db_transcript, user_transcript):
+        if user_exon['frame_shift'] == 0:
+            user_exon['junction_defects'] = 'No possible junction defects'
+        else:
+            user_exon['junction_defects'] = {}
+            # possible junction defect
+            for index, domain_variation in enumerate(db_exon['overlap_domains']):
+                defects = [domain for domain in domain_variation]
+                if len(defects) == 0:
+                    user_exon['junction_defects'][f'variation-{index}'] = 'No junction defects'
+                else:
+                    user_exon['junction_defects'][f'variation-{index}'] = defects

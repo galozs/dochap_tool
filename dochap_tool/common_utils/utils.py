@@ -239,3 +239,22 @@ def get_exon_cds_intersection(exon: dict) -> typing.Union[None, tuple]:
             return intersection_start, intersection_end
     else:
         return None
+
+
+def get_partial_dictionary(old_dict: dict, keys: list, default_value: any=None) -> dict:
+    """Extracts a part of a given dictionary with a list of keys.
+
+    extract keys and values from a given dictionary, if the dictionary doesn't contain a key,
+    the value will be default_value (defaults to None)
+    :param old_dict:
+    :type old_dict: dict
+    :param keys:
+    :type keys: list
+    :param default_value: None
+    :type: default_value: any
+    :return: dict
+    """
+    new_dict = {}
+    for key in keys:
+        new_dict[key] = old_dict.get(key, default_value)
+    return new_dict
