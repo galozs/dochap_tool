@@ -1,6 +1,7 @@
 PROT_PATH_TEMPLATE = 'genomes/{}/protein/protein.gbk.gz'
 README_PATH_TEMPLATE = 'genomes/{}/README_CURRENT_RELEASE'
 UCSC_TEMPLATE = 'goldenPath/{}/database/{}'
+REF_SEQ = 'ncbiRefSeq.txt.gz'
 NCBI_FTP_ADDRESS = 'ftp.ncbi.nlm.nih.gov'
 UCSC_FTP_ADDRESS = 'hgdownload.soe.ucsc.edu'
 
@@ -36,7 +37,3 @@ def get_ucsc_file_path(specie,filename):
     '''
     version_prefix = UCSC_DICT[specie]
     return UCSC_TEMPLATE.format(version_prefix,filename)
-
-
-
-

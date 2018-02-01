@@ -383,7 +383,8 @@ def add_line(
         draw_line_arches: bool = True,
         num_arches: int = 10,
         arch_stroke_color: str = 'black',
-        arcs_direction: str =None
+        arcs_direction: str =None,
+        line_stroke = 'black'
         ) -> svgwrite.container.Group:
     """add_line
 
@@ -412,7 +413,7 @@ def add_line(
     normalized_start_position = to_size(start, mm)
     normalized_end_position = to_size(end, mm)
     line_group = svgwrite.container.Group(class_='line_group')
-    line_group.add(svgwrite.shapes.Line(start=normalized_start_position, end=normalized_end_position, stroke="green"))
+    line_group.add(svgwrite.shapes.Line(start=normalized_start_position, end=normalized_end_position, stroke=line_stroke))
     if draw_line_numbers:
         line_group.add(svgwrite.text.Text(
             insert=to_size((sign_start[0] - TEXT_X_OFFSET, LINE_Y - 3), mm),

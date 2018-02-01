@@ -6,7 +6,7 @@ if sys.version_info < (3,6):
 
 setup(
     name='dochap_tool',
-    version='1.1.1',
+    version='1.2.0',
     description='Tool for handling genetic transcripts',
     author='Nitzan Elbaz',
     author_email='elbazni@post.bgu.ac.il',
