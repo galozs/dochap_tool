@@ -165,6 +165,28 @@ def get_transcripts_by_gene_symbol(root_dir, specie, transcripts_dict, gene_symb
     return transcripts_by_gene
 
 
+def get_gene_symbol_from_transcript_ids(root_dir: str, specie: str, transcript_ids: list) -> str:
+    """get_gene_symbol_from_transcript_ids
+
+    :param root_dir:
+    :type root_dir: str
+    :param specie:
+    :type specie: str
+    :param transcript_ids:
+    :type transcript_ids: list
+    :rtype: str
+    """
+    conn = utils.get_connection_object(root_dir, specie)
+    with conn:
+        alias = None
+        for transcript_id in transcript_ids:
+            alias = compare_exons.get_ncbi_gene_symbol_of_transcript_id(conn, transcript_id)
+            if alias is not None:
+                break
+        return alias
+
+
+
 def get_all_genes_symbols(transcripts_dict):
     """Get a list of all the unique gene symbols
 
@@ -225,11 +247,11 @@ def get_dictionary_of_ids_and_genes(transcripts_dict: dict, genes: list=None):
         return final_dict
 
 
-def get_dictionary_of_exons_and_genes(transcripts_dict):
+def get_dictionary_of_exons_and_genes(transcripts_dict: dict) -> dict:
     """
     @description Get a dictionary of {genes:[{t_id1:t_list1}]}
     @param transcripts_dict (dict)
-    @return (dict) of the form {symbol : [{t_id:t_list}]
+    @return (dict) of the form {symbol : {t_id:t_list]
     """
     final_dict = {}
     for t_id ,t_list in transcripts_dict.items():
@@ -237,9 +259,9 @@ def get_dictionary_of_exons_and_genes(transcripts_dict):
             continue
         symbol = t_list[0]['gene_symbol']
         if symbol in final_dict:
-            final_dict[symbol].append({t_id:t_list})
+            final_dict[symbol][t_id] = t_list
         else:
-            final_dict[symbol] = [{t_id:t_list}]
+            final_dict[symbol] = {t_id:t_list}
     return final_dict
 
 
