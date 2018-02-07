@@ -612,7 +612,7 @@ def get_final_drawing(user_groups: dict, db_groups: dict, line_group: svgwrite.c
         dwg.add(entry['user_transcript'])
         dwg.add(entry['db_transcript'])
     # last, show transcripts from the database with no match in the user transcripts
-    for key, transcript in no_match_db_transcripts:
+    for key, transcript in no_match_db_transcripts.items():
         height = index * height_diff
         transcript.translate(0, height)
         transcript.update({'class_': 'db_transcript_no_match'})
