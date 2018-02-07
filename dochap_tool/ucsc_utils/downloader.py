@@ -13,6 +13,7 @@ from dochap_tool.common_utils import utils
 def download_specie_file(ftp, specie, download_sub_folder, filename):
     print(f'downloading {filename} of {specie}...')
     ftp.sendcmd('TYPE i')
+    print(specie, filename)
     file_path = conf.get_ucsc_file_path(specie, filename)
     file_save_path= os.path.join(download_sub_folder, filename)
     file_size= ftp.size(file_path)
@@ -29,7 +30,7 @@ def download_from_ucsc(species_list,download_folder):
     # connect to ftp server
     ftp = utils.create_ftp_connection(conf.UCSC_FTP_ADDRESS,("anonymous","me@bgu.ac.il"))
     for specie in species_list:
-        download_specie_from_ucsc(specie,download_folder)
+        download_specie_from_ucsc(download_folder, specie)
 
 
 def download_specie_from_ucsc(download_folder,specie,ftp = None):
